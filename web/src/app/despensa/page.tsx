@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { CategoryFilters } from "@/components/despensa/category-filters";
 import { InventoryLegend } from "@/components/despensa/inventory-legend";
@@ -8,11 +9,12 @@ import { InventorySummary } from "@/components/despensa/inventory-summary";
 import { Icon } from "@/components/icons/icon";
 import { ProductRow } from "@/components/product/product-row";
 import { Card } from "@/components/ui/card";
-import { countUrgent, getInventoryByUrgency } from "@/lib/inventory";
+import { countUrgent } from "@/lib/inventory";
+import { useInventory } from "@/lib/use-inventory";
 import type { CategoryKey } from "@/lib/types";
 
 export default function DespensaPage() {
-  const [products, setProducts] = useState(getInventoryByUrgency);
+  const { products, consume, remove } = useInventory();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
 
   const displayed =
@@ -21,14 +23,6 @@ export default function DespensaPage() {
       : products.filter((p) => p.category === selectedCategory);
 
   const urgentCount = countUrgent(displayed);
-
-  function handleConsume(id: string) {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  function handleRemove(id: string) {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  }
 
   return (
     <AppShell active="pantry">
@@ -42,16 +36,14 @@ export default function DespensaPage() {
               {displayed.length} productos · prioridad por vencimiento
             </p>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/agregar"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green text-white shadow-md lg:h-12 lg:w-auto lg:gap-2 lg:rounded-full lg:px-5"
-            aria-label="Agregar producto (próximamente)"
-            disabled
-            title="Disponible en un sprint posterior"
+            aria-label="Agregar producto"
           >
             <Icon name="plus" size={22} color="#fff" strokeWidth={2.25} />
             <span className="hidden font-semibold lg:inline">Agregar</span>
-          </button>
+          </Link>
         </div>
 
         <div
@@ -139,8 +131,8 @@ export default function DespensaPage() {
                       rank={index + 1}
                       divider={index < displayed.length - 1}
                       variant="responsive"
-                      onConsume={() => handleConsume(product.id)}
-                      onDelete={() => handleRemove(product.id)}
+                      onConsume={() => consume(product.id)}
+                      onDelete={() => remove(product.id)}
                     />
                   </li>
                 ))}
