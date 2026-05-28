@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
+import { CameraScanner } from "./camera-scanner";
 import { DaysPill } from "@/components/product/days-pill";
 import { CATEGORIES } from "@/lib/categories";
 import { useInventory } from "@/lib/use-inventory";
@@ -78,6 +79,7 @@ export function AddProductForm() {
   );
   const [expiryWasCustomized, setExpiryWasCustomized] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -130,8 +132,14 @@ export function AddProductForm() {
         <h1 className="text-[15px] font-bold tracking-tight">
           Agregar producto
         </h1>
-        {/* Espacio visual derecho (scan llega en otro sprint) */}
-        <div className="h-10 w-10" />
+        <button
+          type="button"
+          onClick={() => setShowCamera(true)}
+          aria-label="Escanear código de barras"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-alt"
+        >
+          <Icon name="camera" size={20} color="currentColor" />
+        </button>
       </header>
 
       {/* Scrollable content */}
@@ -304,6 +312,8 @@ export function AddProductForm() {
           Agregar a despensa
         </button>
       </div>
+
+      {showCamera && <CameraScanner onClose={() => setShowCamera(false)} />}
     </div>
   );
 }
