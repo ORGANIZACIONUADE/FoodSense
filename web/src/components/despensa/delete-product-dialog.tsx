@@ -48,7 +48,7 @@ export function DeleteProductDialog({
       ref={dialogRef}
       aria-modal="true"
       aria-labelledby="delete-dialog-title"
-      className="w-[min(calc(100vw-2.25rem),360px)] rounded-2xl border border-border bg-bg p-6 shadow-xl backdrop:bg-black/40"
+      className="m-auto w-[min(calc(100vw-2.25rem),360px)] rounded-2xl border border-border bg-bg p-6 shadow-xl backdrop:bg-black/40"
     >
       <div className="flex flex-col gap-5">
         <div>
