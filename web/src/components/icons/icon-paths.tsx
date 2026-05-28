@@ -82,6 +82,15 @@ export const ICON_PATHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M5 12l5 5L19 7" />,
+  x: <path d="M6 6l12 12M18 6L6 18" />,
+  minus: <path d="M5 12h14" />,
+  calendar: (
+    <>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </>
+  ),
+  chevronLeft: <path d="M15 5l-7 7 7 7" />,
   trash: (
     <>
       <path d="M4 7h16M10 11v6M14 11v6" />

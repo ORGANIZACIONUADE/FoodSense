@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { Icon } from "@/components/icons/icon";
 
 const NAV_ITEMS = [
-  { id: "home", label: "Inicio", icon: "home" },
-  { id: "pantry", label: "Despensa", icon: "list" },
-  { id: "alerts", label: "Alertas", icon: "bell" },
-  { id: "profile", label: "Perfil", icon: "user" },
+  { id: "home",    label: "Inicio",   icon: "home",  href: null },
+  { id: "pantry",  label: "Despensa", icon: "list",  href: "/despensa" },
+  { id: "alerts",  label: "Alertas",  icon: "bell",  href: null },
+  { id: "profile", label: "Perfil",   icon: "user",  href: null },
 ] as const;
 
 export type NavId = (typeof NAV_ITEMS)[number]["id"];
@@ -34,16 +35,11 @@ export function SideNav({ active }: SideNavProps) {
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
         {NAV_ITEMS.map((item) => {
           const isActive = item.id === active;
-          return (
-            <span
-              key={item.id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-green-wash text-green-deep"
-                  : "text-ink-soft"
-              }`}
-              aria-current={isActive ? "page" : undefined}
-            >
+          const className = `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            isActive ? "bg-green-wash text-green-deep" : "text-ink-soft"
+          }`;
+          const inner = (
+            <>
               <Icon
                 name={item.icon}
                 size={20}
@@ -51,6 +47,24 @@ export function SideNav({ active }: SideNavProps) {
                 strokeWidth={isActive ? 2 : 1.75}
               />
               {item.label}
+            </>
+          );
+          return item.href ? (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={className}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <span
+              key={item.id}
+              className={className}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {inner}
             </span>
           );
         })}

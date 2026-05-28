@@ -1,11 +1,12 @@
+import Link from "next/link";
 import { Icon } from "@/components/icons/icon";
 import type { NavId } from "./side-nav";
 
-const TABS: { id: NavId; label: string; icon: string }[] = [
-  { id: "home", label: "Inicio", icon: "home" },
-  { id: "pantry", label: "Despensa", icon: "list" },
-  { id: "alerts", label: "Alertas", icon: "bell" },
-  { id: "profile", label: "Perfil", icon: "user" },
+const TABS: { id: NavId; label: string; icon: string; href: string | null }[] = [
+  { id: "home",    label: "Inicio",   icon: "home", href: null },
+  { id: "pantry",  label: "Despensa", icon: "list", href: "/despensa" },
+  { id: "alerts",  label: "Alertas",  icon: "bell", href: null },
+  { id: "profile", label: "Perfil",   icon: "user", href: null },
 ];
 
 type TabBarProps = {
@@ -22,22 +23,38 @@ export function TabBar({ active }: TabBarProps) {
       <ul className="flex justify-around">
         {TABS.map((tab) => {
           const isActive = tab.id === active;
+          const className = `flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium ${
+            isActive ? "text-green" : "text-ink-mute"
+          }`;
+          const inner = (
+            <>
+              <Icon
+                name={tab.icon}
+                size={22}
+                color={isActive ? "#2F8F5C" : "#9AA09C"}
+                strokeWidth={isActive ? 2 : 1.75}
+              />
+              {tab.label}
+            </>
+          );
           return (
             <li key={tab.id}>
-              <span
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium ${
-                  isActive ? "text-green" : "text-ink-mute"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon
-                  name={tab.icon}
-                  size={22}
-                  color={isActive ? "#2F8F5C" : "#9AA09C"}
-                  strokeWidth={isActive ? 2 : 1.75}
-                />
-                {tab.label}
-              </span>
+              {tab.href ? (
+                <Link
+                  href={tab.href}
+                  className={className}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <span
+                  className={className}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {inner}
+                </span>
+              )}
             </li>
           );
         })}
