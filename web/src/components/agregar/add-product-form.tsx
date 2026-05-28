@@ -327,7 +327,7 @@ export function AddProductForm() {
           </div>
 
           {/* Date display + native input */}
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5">
+          <label className="relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5">
             <Icon name="calendar" size={20} color="#5C6460" />
             <div className="flex-1">
               <p className="font-mono text-[10px] uppercase tracking-[1.3px] text-ink-mute">
@@ -338,13 +338,12 @@ export function AddProductForm() {
               </p>
             </div>
             <DaysPill days={daysUntilExpiry} />
-            {/* Native date input visually hidden but tappable over the whole row */}
+            {/* Native date input covering the whole row */}
             <input
               type="date"
               value={expiryDate}
               onChange={(e) => handleExpiryDateChange(e.target.value)}
-              className="absolute opacity-0"
-              style={{ width: 1, height: 1 }}
+              className="absolute inset-0 cursor-pointer opacity-0"
               tabIndex={-1}
             />
           </label>
