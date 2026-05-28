@@ -15,23 +15,43 @@ const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "congelado", label: "Congelado", icon: "snow" },
 ];
 
+const STATE_LABELS: Record<ProductState, string> = {
+  cerrado: "Cerrado",
+  abierto: "Abierto",
+  congelado: "Congelado",
+};
+
 const QUICK_PRESETS = [
   { label: "Hoy", days: 0 },
   { label: "3 días", days: 3 },
-  { label: "1 sem", days: 7 },
-  { label: "2 sem", days: 14 },
+  { label: "1 semana", days: 7 },
+  { label: "2 semanas", days: 14 },
   { label: "1 mes", days: 30 },
 ];
 
-const DEFAULT_EXPIRY_BY_CATEGORY: Record<CategoryKey, number> = {
-  lacteos: 7,
-  carnes: 3,
-  verduras: 4,
-  frutas: 5,
-  panificados: 4,
-  bebidas: 30,
-  huevos: 14,
-  conservas: 30,
+const DEFAULT_EXPIRY_BY_CATEGORY_AND_STATE: Record<
+  CategoryKey,
+  Record<ProductState, number>
+> = {
+  lacteos: { cerrado: 7, abierto: 7, congelado: 30 },
+  carnes: { cerrado: 3, abierto: 3, congelado: 30 },
+  verduras: { cerrado: 7, abierto: 3, congelado: 30 },
+  frutas: { cerrado: 7, abierto: 3, congelado: 30 },
+  panificados: { cerrado: 7, abierto: 3, congelado: 30 },
+  bebidas: { cerrado: 30, abierto: 7, congelado: 30 },
+  huevos: { cerrado: 14, abierto: 7, congelado: 30 },
+  conservas: { cerrado: 30, abierto: 14, congelado: 30 },
+};
+
+const DEFAULT_STATE_BY_CATEGORY: Record<CategoryKey, ProductState> = {
+  lacteos: "abierto",
+  carnes: "congelado",
+  verduras: "cerrado",
+  frutas: "cerrado",
+  panificados: "cerrado",
+  bebidas: "cerrado",
+  huevos: "cerrado",
+  conservas: "cerrado",
 };
 
 function addDaysToToday(days: number): string {
@@ -57,14 +77,28 @@ function formatDateLabel(dateStr: string): string {
   });
 }
 
-function getSuggestedExpiryDays(category: CategoryKey): number {
-  return DEFAULT_EXPIRY_BY_CATEGORY[category];
+function getSuggestedExpiryDays(
+  category: CategoryKey,
+  currentState: ProductState,
+): number {
+  return DEFAULT_EXPIRY_BY_CATEGORY_AND_STATE[category][currentState];
+}
+
+function getSuggestedState(category: CategoryKey): ProductState {
+  return DEFAULT_STATE_BY_CATEGORY[category];
 }
 
 function formatExpiryHint(days: number): string {
   if (days === 0) return "Sugerencia: hoy";
-  if (days === 1) return "Sugerencia: mañana";
-  return `Sugerencia: ${days} días desde hoy`;
+  if (days === 3) return "Sugerencia: 3 días";
+  if (days === 7) return "Sugerencia: 1 semana";
+  if (days === 14) return "Sugerencia: 2 semanas";
+  if (days === 30) return "Sugerencia: 1 mes";
+  return `Sugerencia: ${days} días`;
+}
+
+function formatStateHint(state: ProductState): string {
+  return `Sugerencia: ${STATE_LABELS[state]}`;
 }
 
 export function AddProductForm() {
@@ -73,17 +107,19 @@ export function AddProductForm() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
-  const [state, setState] = useState<ProductState>("cerrado");
+  const [state, setState] = useState<ProductState>(getSuggestedState("lacteos"));
   const [expiryDate, setExpiryDate] = useState(
-    addDaysToToday(getSuggestedExpiryDays("lacteos")),
+    addDaysToToday(getSuggestedExpiryDays("lacteos", "abierto")),
   );
   const [expiryWasCustomized, setExpiryWasCustomized] = useState(false);
+  const [stateWasCustomized, setStateWasCustomized] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
-  const dateHint = formatExpiryHint(getSuggestedExpiryDays(category));
+  const dateHint = formatExpiryHint(getSuggestedExpiryDays(category, state));
+  const stateHint = formatStateHint(getSuggestedState(category));
 
   function handlePreset(days: number) {
     setExpiryWasCustomized(true);
@@ -92,14 +128,28 @@ export function AddProductForm() {
 
   function handleCategoryChange(nextCategory: CategoryKey) {
     setCategory(nextCategory);
+    const nextState = stateWasCustomized ? state : getSuggestedState(nextCategory);
+
     if (!expiryWasCustomized) {
-      setExpiryDate(addDaysToToday(getSuggestedExpiryDays(nextCategory)));
+      setExpiryDate(addDaysToToday(getSuggestedExpiryDays(nextCategory, nextState)));
+    }
+    if (!stateWasCustomized) {
+      setState(nextState);
     }
   }
 
   function handleExpiryDateChange(value: string) {
     setExpiryWasCustomized(true);
     setExpiryDate(value);
+  }
+
+  function handleStateChange(nextState: ProductState) {
+    setStateWasCustomized(true);
+    setState(nextState);
+
+    if (!expiryWasCustomized) {
+      setExpiryDate(addDaysToToday(getSuggestedExpiryDays(category, nextState)));
+    }
   }
 
   function handleSubmit() {
@@ -224,7 +274,7 @@ export function AddProductForm() {
         </FormSection>
 
         {/* Estado */}
-        <FormSection label="Estado">
+        <FormSection label="Estado" hint={stateHint}>
           <div className="flex rounded-xl border border-border bg-surface-alt p-1">
             {STATE_OPTIONS.map((opt) => {
               const isActive = state === opt.id;
@@ -232,7 +282,7 @@ export function AddProductForm() {
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setState(opt.id)}
+                  onClick={() => handleStateChange(opt.id)}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-[13px] transition-all ${
                     isActive
                       ? "border border-border bg-surface font-bold text-ink shadow-sm"
