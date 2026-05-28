@@ -63,3 +63,8 @@ export function getInventoryByUrgency(): Product[] {
 export function countUrgent(products: Product[]): number {
   return products.filter((p) => p.daysUntilExpiry <= 4).length;
 }
+
+/** Issue 6 — busca en el mock base. Para inventario en vivo usar useInventory(). */
+export function getProductById(id: string): Product | undefined {
+  return MOCK_INVENTORY.find((p) => p.id === id);
+}
