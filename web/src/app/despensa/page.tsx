@@ -1,14 +1,34 @@
+"use client";
+
+import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { CategoryFilters } from "@/components/despensa/category-filters";
 import { InventoryLegend } from "@/components/despensa/inventory-legend";
 import { InventorySummary } from "@/components/despensa/inventory-summary";
 import { Icon } from "@/components/icons/icon";
 import { ProductRow } from "@/components/product/product-row";
 import { Card } from "@/components/ui/card";
 import { countUrgent, getInventoryByUrgency } from "@/lib/inventory";
+import type { CategoryKey } from "@/lib/types";
 
 export default function DespensaPage() {
-  const products = getInventoryByUrgency();
-  const urgentCount = countUrgent(products);
+  const [products, setProducts] = useState(getInventoryByUrgency);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
+
+  const displayed =
+    selectedCategory === "todos"
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
+
+  const urgentCount = countUrgent(displayed);
+
+  function handleConsume(id: string) {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function handleRemove(id: string) {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  }
 
   return (
     <AppShell active="pantry">
@@ -19,7 +39,7 @@ export default function DespensaPage() {
               Despensa
             </h1>
             <p className="mt-1 text-[12.5px] text-ink-soft lg:text-sm">
-              {products.length} productos · prioridad por vencimiento
+              {displayed.length} productos · prioridad por vencimiento
             </p>
           </div>
           <button
@@ -42,6 +62,12 @@ export default function DespensaPage() {
           <Icon name="search" size={18} color="#9AA09C" />
           <span className="text-sm">Buscar en la despensa…</span>
         </div>
+
+        <CategoryFilters
+          all={products}
+          selected={selectedCategory}
+          onChange={setSelectedCategory}
+        />
       </header>
 
       <section
@@ -61,7 +87,7 @@ export default function DespensaPage() {
 
       <div className="flex flex-1 flex-col lg:mt-6 lg:grid lg:grid-cols-[minmax(240px,280px)_1fr] lg:items-start lg:gap-8">
         <aside className="hidden lg:block">
-          <InventorySummary total={products.length} urgentCount={urgentCount} />
+          <InventorySummary total={displayed.length} urgentCount={urgentCount} />
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -84,7 +110,7 @@ export default function DespensaPage() {
 
             <Card className="overflow-hidden px-4 lg:px-0">
               <div
-                className="hidden border-b border-border-soft px-6 py-3 lg:grid lg:grid-cols-[2rem_3rem_1fr_auto] lg:items-center lg:gap-4"
+                className="hidden border-b border-border-soft px-6 py-3 lg:grid lg:grid-cols-[2rem_3rem_1fr_auto_auto] lg:items-center lg:gap-4"
                 aria-hidden
               >
                 <span className="font-mono text-[10px] uppercase tracking-wider text-ink-mute">
@@ -97,19 +123,24 @@ export default function DespensaPage() {
                 <span className="text-right font-mono text-[10px] uppercase tracking-wider text-ink-mute">
                   Vence
                 </span>
+                <span className="text-right font-mono text-[10px] uppercase tracking-wider text-ink-mute">
+                  Acciones
+                </span>
               </div>
 
               <ol
                 className="list-none lg:divide-y lg:divide-border-soft"
                 aria-label="Inventario por urgencia"
               >
-                {products.map((product, index) => (
+                {displayed.map((product, index) => (
                   <li key={product.id} className="lg:px-6 lg:py-0.5">
                     <ProductRow
                       product={product}
                       rank={index + 1}
-                      divider={index < products.length - 1}
+                      divider={index < displayed.length - 1}
                       variant="responsive"
+                      onConsume={() => handleConsume(product.id)}
+                      onDelete={() => handleRemove(product.id)}
                     />
                   </li>
                 ))}

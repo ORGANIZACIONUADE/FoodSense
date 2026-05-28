@@ -15,6 +15,8 @@ type ProductRowProps = {
   divider?: boolean;
   rank?: number;
   variant?: "default" | "responsive";
+  onConsume?: () => void;
+  onDelete?: () => void;
 };
 
 export function ProductRow({
@@ -22,6 +24,8 @@ export function ProductRow({
   divider = true,
   rank,
   variant = "default",
+  onConsume,
+  onDelete,
 }: ProductRowProps) {
   const cat = CATEGORIES[product.category];
   const st = STATE_META[product.state];
@@ -62,8 +66,32 @@ export function ProductRow({
           <span>{st.label}</span>
         </p>
       </div>
-      <div className={isResponsive ? "lg:justify-self-end" : ""}>
+      <div className={`flex items-center gap-2 ${isResponsive ? "lg:justify-self-end" : ""}`}>
         <DaysPill days={product.daysUntilExpiry} />
+        {(onConsume || onDelete) && (
+          <div className="flex items-center gap-1">
+            {onConsume && (
+              <button
+                type="button"
+                onClick={onConsume}
+                aria-label={`Marcar ${product.name} como consumido`}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-green transition-colors hover:bg-green/10 active:bg-green/20"
+              >
+                <Icon name="check" size={16} color="currentColor" strokeWidth={2.5} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                aria-label={`Eliminar ${product.name} del inventario`}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-red-50 hover:text-red-500 active:bg-red-100"
+              >
+                <Icon name="trash" size={16} color="currentColor" strokeWidth={2} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
