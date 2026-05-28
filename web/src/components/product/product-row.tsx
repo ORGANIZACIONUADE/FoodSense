@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons/icon";
 import { CATEGORIES } from "@/lib/categories";
 import type { Product } from "@/lib/types";
@@ -30,6 +33,29 @@ export function ProductRow({
   const cat = CATEGORIES[product.category];
   const st = STATE_META[product.state];
   const isResponsive = variant === "responsive";
+
+  const [undoing, setUndoing] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function handleConsume() {
+    setUndoing(true);
+    timerRef.current = setTimeout(() => {
+      setUndoing(false);
+      onConsume?.();
+    }, 3000);
+  }
+
+  function handleUndoConsume() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    setUndoing(false);
+  }
 
   const dividerClass =
     divider && !isResponsive
@@ -67,30 +93,47 @@ export function ProductRow({
         </p>
       </div>
       <div className={`flex items-center gap-2 ${isResponsive ? "lg:justify-self-end" : ""}`}>
-        <DaysPill days={product.daysUntilExpiry} />
-        {(onConsume || onDelete) && (
-          <div className="flex items-center gap-1">
-            {onConsume && (
-              <button
-                type="button"
-                onClick={onConsume}
-                aria-label={`Marcar ${product.name} como consumido`}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-green transition-colors hover:bg-green/10 active:bg-green/20"
-              >
-                <Icon name="check" size={16} color="currentColor" strokeWidth={2.5} />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                aria-label={`Eliminar ${product.name} del inventario`}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-red-50 hover:text-red-500 active:bg-red-100"
-              >
-                <Icon name="trash" size={16} color="currentColor" strokeWidth={2} />
-              </button>
-            )}
+        {undoing ? (
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-green/10 px-2.5 py-1.5 text-[11px] font-semibold text-green">
+              Consumido
+            </span>
+            <button
+              type="button"
+              onClick={handleUndoConsume}
+              className="text-[12px] font-medium text-ink-soft transition-colors hover:text-ink"
+            >
+              Deshacer
+            </button>
           </div>
+        ) : (
+          <>
+            <DaysPill days={product.daysUntilExpiry} />
+            {(onConsume || onDelete) && (
+              <div className="flex items-center gap-1">
+                {onConsume && (
+                  <button
+                    type="button"
+                    onClick={handleConsume}
+                    aria-label={`Marcar ${product.name} como consumido`}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-green transition-colors hover:bg-green/10 active:bg-green/20"
+                  >
+                    <Icon name="check" size={16} color="currentColor" strokeWidth={2.5} />
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    aria-label={`Eliminar ${product.name} del inventario`}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-red-50 hover:text-red-500 active:bg-red-100"
+                  >
+                    <Icon name="trash" size={16} color="currentColor" strokeWidth={2} />
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </article>
