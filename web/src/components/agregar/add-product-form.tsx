@@ -22,6 +22,17 @@ const QUICK_PRESETS = [
   { label: "1 mes", days: 30 },
 ];
 
+const DEFAULT_EXPIRY_BY_CATEGORY: Record<CategoryKey, number> = {
+  lacteos: 7,
+  carnes: 3,
+  verduras: 4,
+  frutas: 5,
+  panificados: 4,
+  bebidas: 30,
+  huevos: 14,
+  conservas: 30,
+};
+
 function addDaysToToday(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -45,6 +56,16 @@ function formatDateLabel(dateStr: string): string {
   });
 }
 
+function getSuggestedExpiryDays(category: CategoryKey): number {
+  return DEFAULT_EXPIRY_BY_CATEGORY[category];
+}
+
+function formatExpiryHint(days: number): string {
+  if (days === 0) return "Sugerencia: hoy";
+  if (days === 1) return "Sugerencia: mañana";
+  return `Sugerencia: ${days} días desde hoy`;
+}
+
 export function AddProductForm() {
   const router = useRouter();
   const { addProduct } = useInventory();
@@ -52,14 +73,31 @@ export function AddProductForm() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
   const [state, setState] = useState<ProductState>("cerrado");
-  const [expiryDate, setExpiryDate] = useState(addDaysToToday(7));
+  const [expiryDate, setExpiryDate] = useState(
+    addDaysToToday(getSuggestedExpiryDays("lacteos")),
+  );
+  const [expiryWasCustomized, setExpiryWasCustomized] = useState(false);
   const [nameError, setNameError] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
+  const dateHint = formatExpiryHint(getSuggestedExpiryDays(category));
 
   function handlePreset(days: number) {
+    setExpiryWasCustomized(true);
     setExpiryDate(addDaysToToday(days));
+  }
+
+  function handleCategoryChange(nextCategory: CategoryKey) {
+    setCategory(nextCategory);
+    if (!expiryWasCustomized) {
+      setExpiryDate(addDaysToToday(getSuggestedExpiryDays(nextCategory)));
+    }
+  }
+
+  function handleExpiryDateChange(value: string) {
+    setExpiryWasCustomized(true);
+    setExpiryDate(value);
   }
 
   function handleSubmit() {
@@ -150,7 +188,7 @@ export function AddProductForm() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setCategory(key)}
+                    onClick={() => handleCategoryChange(key)}
                     className="flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 transition-colors"
                     style={{
                       background: isSelected ? cat.tint : "#fff",
@@ -207,7 +245,7 @@ export function AddProductForm() {
         </FormSection>
 
         {/* Fecha de vencimiento */}
-        <FormSection label="Fecha de vencimiento" hint="Sugerencia: 7 días">
+        <FormSection label="Fecha de vencimiento" hint={dateHint}>
           {/* Quick presets */}
           <div className="mb-2.5 flex gap-1.5">
             {QUICK_PRESETS.map((p) => {
@@ -246,7 +284,7 @@ export function AddProductForm() {
             <input
               type="date"
               value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
+              onChange={(e) => handleExpiryDateChange(e.target.value)}
               className="absolute opacity-0"
               style={{ width: 1, height: 1 }}
               tabIndex={-1}
