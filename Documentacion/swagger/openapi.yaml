@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: FoodSense API
+  version: 0.1.0
+  description: |
+    Contrato inicial para Sprint 1 (US-04 a US-10).
+    Esta especificacion define el backend esperado aunque hoy el frontend use mocks.
+servers:
+  - url: http://localhost:3001
+    description: Local development
+tags:
+  - name: Products
+  - name: Inventory
+
+paths:
+  /api/products/scan:
+    post:
+      tags: [Products]
+      summary: Resolver producto a partir de EAN
+      description: US-04. Recibe un EAN y devuelve metadata sugerida de producto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ean]
+              properties:
+                ean:
+                  $ref: "#/components/schemas/Ean"
+      responses:
+        "200":
+          description: Producto identificado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [product]
+                properties:
+                  product:
+                    $ref: "#/components/schemas/ScannedProduct"
+        "404":
+          description: EAN no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/products/suggest-expiry:
+    post:
+      tags: [Products]
+      summary: Sugerir fecha de vencimiento por categoria
+      description: US-06. Estima vencimiento en dias desde hoy segun categoria y estado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, state]
+              properties:
+                category:
+                  $ref: "#/components/schemas/CategoryKey"
+                state:
+                  $ref: "#/components/schemas/ProductState"
+      responses:
+        "200":
+          description: Sugerencia generada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [daysUntilExpiry]
+                properties:
+                  daysUntilExpiry:
+                    type: integer
+                    minimum: 0
+                  reason:
+                    type: string
+
+  /api/inventory:
+    get:
+      tags: [Inventory]
+      summary: Listar inventario
+      description: US-07 y US-08. Retorna productos con filtros y orden.
+      parameters:
+        - in: query
+          name: category
+          schema:
+            $ref: "#/components/schemas/CategoryKey"
+          required: false
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [urgency_asc, urgency_desc]
+            default: urgency_asc
+          required: false
+      responses:
+        "200":
+          description: Inventario actual
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, totals]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+                  totals:
+                    $ref: "#/components/schemas/InventoryTotals"
+    post:
+      tags: [Inventory]
+      summary: Alta manual de producto
+      description: US-05. Carga un producto al inventario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+      responses:
+        "201":
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Datos invalidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/inventory/{id}:
+    get:
+      tags: [Inventory]
+      summary: Obtener detalle por id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Inventory]
+      summary: Eliminar producto
+      description: US-10.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Eliminado correctamente
+        "404":
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/inventory/{id}/consume:
+    patch:
+      tags: [Inventory]
+      summary: Marcar producto como consumido
+      description: US-09.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consumedAt:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    Ean:
+      type: string
+      pattern: "^([0-9]{8}|[0-9]{13})$"
+      example: "7791293001234"
+    CategoryKey:
+      type: string
+      enum:
+        - lacteos
+        - carnes
+        - verduras
+        - frutas
+        - panificados
+        - bebidas
+        - huevos
+        - conservas
+    ProductState:
+      type: string
+      enum: [cerrado, abierto, congelado]
+    ScannedProduct:
+      type: object
+      required: [ean, name, category]
+      properties:
+        ean:
+          $ref: "#/components/schemas/Ean"
+        name:
+          type: string
+        brand:
+          type: string
+        category:
+          $ref: "#/components/schemas/CategoryKey"
+    Product:
+      type: object
+      required: [id, name, category, state, daysUntilExpiry]
+      properties:
+        id:
+          type: string
+        ean:
+          $ref: "#/components/schemas/Ean"
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/CategoryKey"
+        state:
+          $ref: "#/components/schemas/ProductState"
+        daysUntilExpiry:
+          type: integer
+          minimum: 0
+        consumed:
+          type: boolean
+          default: false
+        consumedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CreateProductRequest:
+      type: object
+      required: [name, category, state]
+      properties:
+        ean:
+          $ref: "#/components/schemas/Ean"
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/CategoryKey"
+        state:
+          $ref: "#/components/schemas/ProductState"
+        daysUntilExpiry:
+          type: integer
+          minimum: 0
+          description: Si no se envia, se calcula por suggest-expiry.
+    InventoryTotals:
+      type: object
+      required: [totalItems, urgentItems]
+      properties:
+        totalItems:
+          type: integer
+          minimum: 0
+        urgentItems:
+          type: integer
+          minimum: 0
+          description: Productos con vencimiento menor o igual a 4 dias.
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
