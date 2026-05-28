@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function AgregarPage() {
   return (
-    <div className="flex min-h-full flex-col bg-bg">
+    <div className="flex h-dvh flex-col bg-bg">
       <AddProductForm />
     </div>
   );
