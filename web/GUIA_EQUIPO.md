@@ -188,6 +188,65 @@ Todas comparten la misma épica [#18](https://github.com/ORGANIZACIONUADE/FoodSe
 
 ---
 
+## Coordinación Issue 5 vs Issue 6 (conflictos)
+
+> **Lectura obligatoria** si te asignaron el Issue 5 o el Issue 6. También está resumido en `web/README.md` para que los agentes de IA lo vean al arrancar.
+
+### Por qué chocan
+
+| Archivo | Issue 5 (Despensa v2) | Issue 6 (Detalle) |
+|---------|------------------------|-------------------|
+| `src/app/despensa/page.tsx` | Refactor de header, chips, tabs, layout | Agrega `Link` / click en filas hacia `[id]` |
+| `src/components/product/product-row.tsx` | Puede cambiar layout de la fila | Necesita ser clickeable o tener CTA al detalle |
+| `src/lib/inventory.ts` | Contadores, filtros, shape de datos | `getProductById(id)` para la página de detalle |
+| `src/lib/types.ts` | Campos extra si el diseño lo pide | Mismos tipos `Product` |
+
+Si dos personas editan todo `page.tsx` a la vez, Git casi seguro genera conflictos y es fácil romper **US-07** (orden por urgencia).
+
+### Reglas de trabajo (respetar sí o sí)
+
+1. **Una sola fuente de datos** en `inventory.ts`. No crear un segundo mock en el Issue 6.
+2. **US-07 no se negocia:** después de cualquier cambio, la lista activa sigue ordenada por `daysUntilExpiry` ascendente (`getInventoryByUrgency` o equivalente sobre el subconjunto filtrado).
+3. **Issue 5** no debe implementar la ruta `[id]` ni la pantalla de detalle completa; solo deja la lista preparada (espacio visual, filas estables).
+4. **Issue 6** no debe rehacer el header, chips ni grid de Despensa; solo:
+   - Crear `src/app/despensa/[id]/page.tsx`
+   - Exponer `getProductById(id)` en `inventory.ts`
+   - Añadir navegación mínima en `ProductRow` (ej. prop `href` o envolver en `<Link>`)
+5. **Cambios en `ProductRow`:** coordinar por chat. Preferir una PR que agregue props opcionales (`href?: string`) sin borrar estilos del otro issue.
+6. **Ramas:** `issue-5-despensa-v2` y `issue-6-detalle-producto`. Base: `main` actualizado antes de abrir cada rama.
+
+### Orden de merge recomendado
+
+```
+main → Issue 5 (Despensa v2) → merge → Issue 6 (Detalle) rebase/merge sobre main
+```
+
+Si el Issue 6 arrancó antes de que mergeen el 5:
+
+```bash
+git fetch origin
+git checkout issue-6-detalle-producto
+git rebase origin/main   # o merge origin/main
+```
+
+Resolver conflictos priorizando: **layout de Despensa = Issue 5**, **ruta y detalle = Issue 6**.
+
+### Checklist antes del PR (Issue 5 o 6)
+
+- [ ] Leí esta sección y `web/README.md` (bloque obligatorio Issue 5/6)
+- [ ] No toqué archivos del otro issue fuera del alcance acordado
+- [ ] `/despensa` sigue mostrando inventario por urgencia
+- [ ] Issue 6: `/despensa/[id]` funciona y id inválido tiene estado claro
+- [ ] `pnpm build` y `pnpm lint` OK
+
+### Si trabajan en paralelo sin merge intermedio
+
+Opción A — **Un solo responsable de `inventory.ts` + `product-row.tsx`** y el otro solo consume.  
+Opción B — **Pair en los archivos compartidos** el mismo día.  
+Opción C — **Un PR conjunto** `issue-5-6-despensa-detalle` con commits separados por issue.
+
+---
+
 ## 6. Pantallas futuras (fuera de EC-03, otros sprints)
 
 No están implementadas; la navegación es visual solamente. Referencia en `Documentacion/Foodsens/`:

@@ -19,5 +19,5 @@ pnpm dev
 
 ## Documentación para desarrolladores
 
-- [web/GUIA_EQUIPO.md](web/GUIA_EQUIPO.md) — Tecnología, archivos de Despensa (US-07) y guía por issue (US-08, US-09, US-10).
-- [web/README.md](web/README.md) — Comandos y enlaces rápidos.
+- [web/README.md](web/README.md) — Comandos, enlaces rápidos y **lectura obligatoria Issue 5 vs 6** (conflictos).
+- [web/GUIA_EQUIPO.md](web/GUIA_EQUIPO.md) — Tecnología, archivos de Despensa (US-07), guía por issue (US-08–US-10) y coordinación Issue 5/6.
