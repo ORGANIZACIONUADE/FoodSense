@@ -81,6 +81,12 @@ export const ICON_PATHS: Record<string, ReactNode> = {
       <path d="M4 11h16M9 7.5v1.5M9 14v1.5" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M2 9a2 2 0 0 1 2-2h1.5l2-3h5l2 3H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9Z" />
+      <circle cx="12" cy="13" r="3" />
+    </>
+  ),
   check: <path d="M5 12l5 5L19 7" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   minus: <path d="M5 12h14" />,
