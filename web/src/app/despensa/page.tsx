@@ -11,11 +11,13 @@ import { ProductRow } from "@/components/product/product-row";
 import { Card } from "@/components/ui/card";
 import { countUrgent } from "@/lib/inventory";
 import { useInventory } from "@/lib/use-inventory";
-import type { CategoryKey } from "@/lib/types";
+import { DeleteProductDialog } from "@/components/despensa/delete-product-dialog";
+import type { CategoryKey, Product } from "@/lib/types";
 
 export default function DespensaPage() {
   const { products, consume, remove } = useInventory();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const displayed =
     selectedCategory === "todos"
@@ -132,7 +134,7 @@ export default function DespensaPage() {
                       divider={index < displayed.length - 1}
                       variant="responsive"
                       onConsume={() => consume(product.id)}
-                      onDelete={() => remove(product.id)}
+                      onDelete={() => setProductToDelete(product)}
                     />
                   </li>
                 ))}
@@ -143,6 +145,14 @@ export default function DespensaPage() {
           </main>
         </div>
       </div>
+      <DeleteProductDialog
+        product={productToDelete}
+        onConfirm={() => {
+          if (productToDelete) remove(productToDelete.id);
+          setProductToDelete(null);
+        }}
+        onCancel={() => setProductToDelete(null)}
+      />
     </AppShell>
   );
 }
