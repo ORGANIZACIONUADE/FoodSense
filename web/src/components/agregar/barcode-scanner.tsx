@@ -56,6 +56,7 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
 
   const [status, setStatus] = useState<ScanStatus>("scanning");
   const [errorMsg, setErrorMsg] = useState("");
+  const [lastBarcode, setLastBarcode] = useState("");
   const detectedRef = useRef(false);
 
   useEffect(() => {
@@ -64,18 +65,39 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
 
     async function start() {
       try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const reader = new BrowserMultiFormatReader();
+        const { BrowserMultiFormatReader, BarcodeFormat } = await import("@zxing/browser");
+        if (!videoRef.current) return;
 
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current!,
+        const reader = new BrowserMultiFormatReader();
+        reader.possibleFormats = [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.ITF,
+        ];
+
+        const constraints: MediaStreamConstraints = {
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        };
+
+        const controls = await reader.decodeFromConstraints(
+          constraints,
+          videoRef.current,
           async (result) => {
             if (cancelled || detectedRef.current || !result) return;
             detectedRef.current = true;
             setStatus("loading");
 
             const barcode = result.getText();
+            setLastBarcode(barcode);
             const info = await lookupBarcode(barcode);
 
             if (cancelled) return;
@@ -166,6 +188,9 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
             <p className="text-[13px] text-white/60">
               No está en la base de datos. Podés ingresarlo manualmente.
             </p>
+            {lastBarcode && (
+              <p className="text-[12px] font-mono text-white/70">Código detectado: {lastBarcode}</p>
+            )}
           </div>
         )}
 
