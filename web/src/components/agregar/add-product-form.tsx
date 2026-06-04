@@ -9,6 +9,7 @@ import { useInventory } from "@/lib/use-inventory";
 import type { CategoryKey, ProductState } from "@/lib/types";
 import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
+import { CategoryIcon } from "@/components/product/category-icon";
 
 const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "cerrado", label: "Cerrado", icon: "closed" },
@@ -115,9 +116,18 @@ function inferCategoryFromName(name: string): CategoryKey | null {
   return null;
 }
 
+type SessionItem = {
+  id: string;
+  name: string;
+  category: CategoryKey;
+  state: ProductState;
+  daysUntilExpiry: number;
+  quantity: number;
+};
+
 export function AddProductForm() {
   const router = useRouter();
-  const { addProduct } = useInventory();
+  const { addProduct, updateProduct } = useInventory();
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
@@ -131,6 +141,8 @@ export function AddProductForm() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [sessionProducts, setSessionProducts] = useState<SessionItem[]>([]);
+  const [sessionExpanded, setSessionExpanded] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -181,6 +193,16 @@ export function AddProductForm() {
     }
   }
 
+  function handleQuantityChange(id: string, delta: number) {
+    const item = sessionProducts.find((p) => p.id === id);
+    if (!item) return;
+    const newQty = Math.max(1, item.quantity + delta);
+    setSessionProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, quantity: newQty } : p)),
+    );
+    updateProduct(id, { quantity: newQty });
+  }
+
   function handleScanDetected(barcode: string, info: BarcodeScanResult | null) {
     setShowScanner(false);
     if (info) {
@@ -195,13 +217,16 @@ export function AddProductForm() {
       setNameError(true);
       return;
     }
-    addProduct({
+    const newItem: SessionItem = {
       id: Date.now().toString(),
       name: name.trim(),
       category,
       state,
       daysUntilExpiry,
-    });
+      quantity: 1,
+    };
+    addProduct(newItem);
+    setSessionProducts((prev) => [...prev, newItem]);
     
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 2000);
@@ -426,25 +451,90 @@ export function AddProductForm() {
         </FormSection>
       </div>
 
-      {/* Sticky save button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-surface px-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-lg lg:absolute">
-        <div className="flex gap-2.5">
-          <button
-            type="button"
-            onClick={handleSaveAndAddAnother}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-green bg-transparent text-[14px] font-bold text-green transition-opacity active:opacity-60"
-          >
-            <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
-            Agregar otro
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
-          >
-            <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
-            Finalizar
-          </button>
+      {/* Bottom panel: lista de sesión + botones */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-surface shadow-lg lg:absolute">
+        {/* Lista colapsable de productos agregados en la sesión */}
+        {sessionProducts.length > 0 && (
+          <>
+            {sessionExpanded && (
+              <div className="max-h-44 divide-y divide-border overflow-y-auto">
+                {sessionProducts.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 px-[18px] py-2.5">
+                    <CategoryIcon category={item.category} size={32} />
+                    <span className="flex-1 truncate text-[13.5px] font-semibold text-ink">
+                      {item.name}
+                    </span>
+                    <DaysPill days={item.daysUntilExpiry} />
+                    <div className="ml-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleQuantityChange(item.id, -1)}
+                        aria-label="Restar cantidad"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-[16px] font-bold text-ink-soft transition-colors active:bg-border"
+                      >
+                        −
+                      </button>
+                      <span className="w-5 text-center text-[14px] font-bold text-ink">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuantityChange(item.id, +1)}
+                        aria-label="Sumar cantidad"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-[16px] font-bold text-ink-soft transition-colors active:bg-border"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setSessionExpanded((v) => !v)}
+              className="flex w-full items-center justify-between border-b border-border px-[18px] py-2.5"
+            >
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
+                <div
+                  style={{
+                    transform: sessionExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                    transition: "transform 200ms",
+                  }}
+                >
+                  <Icon name="chevronDown" size={14} color="#1B221F" />
+                </div>
+                {sessionProducts.length === 1
+                  ? "1 producto agregado"
+                  : `${sessionProducts.length} productos agregados`}
+              </span>
+              <span className="text-[11.5px] text-ink-mute">
+                {sessionExpanded ? "Cerrar" : "Ver y editar"}
+              </span>
+            </button>
+          </>
+        )}
+
+        {/* Botones de acción */}
+        <div className="px-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={handleSaveAndAddAnother}
+              className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-green bg-transparent text-[14px] font-bold text-green transition-opacity active:opacity-60"
+            >
+              <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
+              Agregar otro
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
+            >
+              <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+              Finalizar
+            </button>
+          </div>
         </div>
       </div>
     </div>

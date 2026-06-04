@@ -90,6 +90,7 @@ export const ICON_PATHS: Record<string, ReactNode> = {
       <path d="M16 2v4M8 2v4M3 10h18" />
     </>
   ),
+  chevronDown: <path d="M5 9l7 7 7-7" />,
   chevronLeft: <path d="M15 5l-7 7 7 7" />,
   barcode: (
     <>
