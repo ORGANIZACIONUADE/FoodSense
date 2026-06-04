@@ -122,6 +122,7 @@ type SessionItem = {
   category: CategoryKey;
   state: ProductState;
   daysUntilExpiry: number;
+  expiryDate: string;
   quantity: number;
 };
 
@@ -143,6 +144,7 @@ export function AddProductForm() {
   const [showScanner, setShowScanner] = useState(false);
   const [sessionProducts, setSessionProducts] = useState<SessionItem[]>([]);
   const [sessionExpanded, setSessionExpanded] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -212,6 +214,61 @@ export function AddProductForm() {
     }
   }
 
+  function handleEditItem(id: string) {
+    const item = sessionProducts.find((p) => p.id === id);
+    if (!item) return;
+    setEditingItemId(id);
+    setName(item.name);
+    setCategory(item.category);
+    setState(item.state);
+    setExpiryDate(item.expiryDate);
+    setExpiryWasCustomized(true);
+    setStateWasCustomized(true);
+    setHasManuallyChangedCategory(true);
+    setNameError(false);
+    setSessionExpanded(false);
+  }
+
+  function handleSaveEdit() {
+    if (!name.trim()) {
+      setNameError(true);
+      return;
+    }
+    if (!editingItemId) return;
+    const prevQty = sessionProducts.find((p) => p.id === editingItemId)?.quantity ?? 1;
+    const updatedItem: SessionItem = {
+      id: editingItemId,
+      name: name.trim(),
+      category,
+      state,
+      daysUntilExpiry,
+      expiryDate,
+      quantity: prevQty,
+    };
+    setSessionProducts((prev) =>
+      prev.map((p) => (p.id === editingItemId ? updatedItem : p)),
+    );
+    updateProduct(editingItemId, {
+      name: updatedItem.name,
+      category: updatedItem.category,
+      state: updatedItem.state,
+      daysUntilExpiry: updatedItem.daysUntilExpiry,
+    });
+    handleCancelEdit();
+  }
+
+  function handleCancelEdit() {
+    setEditingItemId(null);
+    setName("");
+    setHasManuallyChangedCategory(false);
+    setExpiryWasCustomized(false);
+    setStateWasCustomized(false);
+    setNameError(false);
+    const resetState = getSuggestedState(category);
+    setState(resetState);
+    setExpiryDate(addDaysToToday(getSuggestedExpiryDays(category, resetState)));
+  }
+
   function handleSaveAndAddAnother() {
     if (!name.trim()) {
       setNameError(true);
@@ -223,6 +280,7 @@ export function AddProductForm() {
       category,
       state,
       daysUntilExpiry,
+      expiryDate,
       quantity: 1,
     };
     addProduct(newItem);
@@ -300,11 +358,12 @@ export function AddProductForm() {
         {/* Intro */}
         <div className="px-[22px] pb-5 pt-2">
           <p className="text-[22px] font-bold leading-snug tracking-tight">
-            Contanos qué guardás
+            {editingItemId ? "Corregí lo que necesites" : "Contanos qué guardás"}
           </p>
           <p className="mt-1.5 text-[13.5px] leading-[1.45] text-ink-soft">
-            Lo de siempre alcanza — nombre y fecha. El resto lo sugerimos
-            nosotros.
+            {editingItemId
+              ? "Cambiá lo que esté mal y guardá los cambios."
+              : "Lo de siempre alcanza — nombre y fecha. El resto lo sugerimos nosotros."}
           </p>
         </div>
 
@@ -485,6 +544,14 @@ export function AddProductForm() {
                       >
                         +
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleEditItem(item.id)}
+                        aria-label="Editar producto"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-ink-soft transition-colors active:bg-border"
+                      >
+                        <Icon name="pencil" size={13} color="currentColor" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -517,24 +584,45 @@ export function AddProductForm() {
 
         {/* Botones de acción */}
         <div className="px-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
-          <div className="flex gap-2.5">
-            <button
-              type="button"
-              onClick={handleSaveAndAddAnother}
-              className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-green bg-transparent text-[14px] font-bold text-green transition-opacity active:opacity-60"
-            >
-              <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
-              Agregar otro
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
-            >
-              <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
-              Finalizar
-            </button>
-          </div>
+          {editingItemId ? (
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-border bg-transparent text-[14px] font-bold text-ink-soft transition-opacity active:opacity-60"
+              >
+                <Icon name="x" size={18} color="currentColor" strokeWidth={2.5} />
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
+              >
+                <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+                Guardar cambios
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={handleSaveAndAddAnother}
+                className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-green bg-transparent text-[14px] font-bold text-green transition-opacity active:opacity-60"
+              >
+                <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
+                Agregar otro
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
+              >
+                <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+                Finalizar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
