@@ -7,6 +7,8 @@ import { DaysPill } from "@/components/product/days-pill";
 import { CATEGORIES } from "@/lib/categories";
 import { useInventory } from "@/lib/use-inventory";
 import type { CategoryKey, ProductState } from "@/lib/types";
+import { BarcodeScanner } from "./barcode-scanner";
+import type { BarcodeScanResult } from "./barcode-scanner";
 
 const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "cerrado", label: "Cerrado", icon: "closed" },
@@ -113,6 +115,7 @@ export function AddProductForm() {
   const [expiryWasCustomized, setExpiryWasCustomized] = useState(false);
   const [stateWasCustomized, setStateWasCustomized] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -150,6 +153,15 @@ export function AddProductForm() {
     }
   }
 
+  function handleScanDetected(barcode: string, info: BarcodeScanResult | null) {
+    setShowScanner(false);
+    if (info) {
+      setName(info.name);
+      setNameError(false);
+      handleCategoryChange(info.category);
+    }
+  }
+
   function handleSubmit() {
     if (!name.trim()) {
       setNameError(true);
@@ -166,6 +178,13 @@ export function AddProductForm() {
   }
 
   return (
+    <>
+    {showScanner && (
+      <BarcodeScanner
+        onDetected={handleScanDetected}
+        onClose={() => setShowScanner(false)}
+      />
+    )}
     <div className="flex h-full flex-col bg-bg">
       {/* Top bar */}
       <header className="flex items-center justify-between px-[18px] pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -180,8 +199,14 @@ export function AddProductForm() {
         <h1 className="text-[15px] font-bold tracking-tight">
           Agregar producto
         </h1>
-        {/* Espacio visual derecho (scan llega en otro sprint) */}
-        <div className="h-10 w-10" />
+        <button
+          type="button"
+          onClick={() => setShowScanner(true)}
+          aria-label="Escanear código de barras"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-alt"
+        >
+          <Icon name="barcode" size={20} color="currentColor" />
+        </button>
       </header>
 
       {/* Scrollable content */}
@@ -355,6 +380,7 @@ export function AddProductForm() {
         </button>
       </div>
     </div>
+    </>
   );
 }
 
