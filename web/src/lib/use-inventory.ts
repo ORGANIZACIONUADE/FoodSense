@@ -44,5 +44,11 @@ export function useInventory() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
-  return { products, addProduct, consume, remove };
+  function updateProduct(id: string, changes: Partial<Product>) {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...changes } : p)),
+    );
+  }
+
+  return { products, addProduct, consume, remove, updateProduct };
 }

@@ -17,4 +17,5 @@ export interface Product {
   state: ProductState;
   /** Días hasta el vencimiento (0 = hoy). */
   daysUntilExpiry: number;
+  quantity?: number;
 }
