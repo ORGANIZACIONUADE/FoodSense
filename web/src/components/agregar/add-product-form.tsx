@@ -102,6 +102,19 @@ function formatStateHint(state: ProductState): string {
   return `Sugerencia: ${STATE_LABELS[state]}`;
 }
 
+function inferCategoryFromName(name: string): CategoryKey | null {
+  const s = name.toLowerCase();
+  if (/leche|queso|yogur|manteca|crema|lacteo/.test(s)) return "lacteos";
+  if (/carne|pollo|cerdo|pescado|hamburguesa|salchicha/.test(s)) return "carnes";
+  if (/lechuga|tomate|cebolla|papa|zanahoria|verdura|zapallo/.test(s)) return "verduras";
+  if (/manzana|banana|naranja|pera|uva|fruta/.test(s)) return "frutas";
+  if (/pan|galletita|factura|torta|budin|harina/.test(s)) return "panificados";
+  if (/agua|jugo|gaseosa|coca|sprite|cerveza|vino|bebida/.test(s)) return "bebidas";
+  if (/huevo/.test(s)) return "huevos";
+  if (/lata|arroz|fideo|salsa|arveja|choclo|lenteja|conserva/.test(s)) return "conservas";
+  return null;
+}
+
 export function AddProductForm() {
   const router = useRouter();
   const { addProduct } = useInventory();
@@ -114,6 +127,8 @@ export function AddProductForm() {
   );
   const [expiryWasCustomized, setExpiryWasCustomized] = useState(false);
   const [stateWasCustomized, setStateWasCustomized] = useState(false);
+  const [hasManuallyChangedCategory, setHasManuallyChangedCategory] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
@@ -127,7 +142,8 @@ export function AddProductForm() {
     setExpiryDate(addDaysToToday(days));
   }
 
-  function handleCategoryChange(nextCategory: CategoryKey) {
+  function handleCategoryChange(nextCategory: CategoryKey, isManual = true) {
+    if (isManual) setHasManuallyChangedCategory(true);
     setCategory(nextCategory);
     const nextState = stateWasCustomized ? state : getSuggestedState(nextCategory);
 
@@ -136,6 +152,18 @@ export function AddProductForm() {
     }
     if (!stateWasCustomized) {
       setState(nextState);
+    }
+  }
+
+  function handleNameChange(value: string) {
+    setName(value);
+    if (value) setNameError(false);
+
+    if (!hasManuallyChangedCategory) {
+      const inferred = inferCategoryFromName(value);
+      if (inferred && inferred !== category) {
+        handleCategoryChange(inferred, false);
+      }
     }
   }
 
@@ -158,8 +186,33 @@ export function AddProductForm() {
     if (info) {
       setName(info.name);
       setNameError(false);
-      handleCategoryChange(info.category);
+      handleCategoryChange(info.category, false);
     }
+  }
+
+  function handleSaveAndAddAnother() {
+    if (!name.trim()) {
+      setNameError(true);
+      return;
+    }
+    addProduct({
+      id: Date.now().toString(),
+      name: name.trim(),
+      category,
+      state,
+      daysUntilExpiry,
+    });
+    
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 2000);
+    
+    setName("");
+    setHasManuallyChangedCategory(false);
+    setExpiryWasCustomized(false);
+    setStateWasCustomized(false);
+    const resetState = getSuggestedState(category);
+    setState(resetState);
+    setExpiryDate(addDaysToToday(getSuggestedExpiryDays(category, resetState)));
   }
 
   function handleSubmit() {
@@ -179,6 +232,14 @@ export function AddProductForm() {
 
   return (
     <>
+    {showSuccessToast && (
+      <div className="fixed left-4 right-4 top-4 z-50 flex justify-center transition-opacity duration-300">
+        <div className="flex items-center gap-2 rounded-full bg-green px-5 py-3 text-[14px] font-bold text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+          <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+          ¡Producto guardado!
+        </div>
+      </div>
+    )}
     {showScanner && (
       <BarcodeScanner
         onDetected={handleScanDetected}
@@ -236,10 +297,7 @@ export function AddProductForm() {
             <input
               type="text"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (e.target.value) setNameError(false);
-              }}
+              onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Ej: Yogur natural"
               className="flex-1 bg-transparent text-ink placeholder:text-ink-mute focus:outline-none"
               autoFocus
@@ -370,14 +428,24 @@ export function AddProductForm() {
 
       {/* Sticky save button */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-surface px-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-lg lg:absolute">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-green text-[15px] font-bold text-white shadow-md transition-opacity active:opacity-80"
-        >
-          <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
-          Agregar a despensa
-        </button>
+        <div className="flex gap-2.5">
+          <button
+            type="button"
+            onClick={handleSaveAndAddAnother}
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] border-[2px] border-green bg-transparent text-[14px] font-bold text-green transition-opacity active:opacity-60"
+          >
+            <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
+            Agregar otro
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-green text-[14px] font-bold text-white shadow-md transition-opacity active:opacity-80"
+          >
+            <Icon name="check" size={18} color="#fff" strokeWidth={2.5} />
+            Finalizar
+          </button>
+        </div>
       </div>
     </div>
     </>
