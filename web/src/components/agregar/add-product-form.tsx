@@ -11,6 +11,7 @@ import type { CategoryKey, ProductState } from "@/lib/types";
 import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
+import { ConfirmExitDialog } from "./confirm-exit-dialog";
 
 const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "cerrado", label: "Cerrado", icon: "closed" },
@@ -147,6 +148,7 @@ export function AddProductForm() {
   const [sessionProducts, setSessionProducts] = useState<SessionItem[]>([]);
   const [sessionExpanded, setSessionExpanded] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showConfirmExit, setShowConfirmExit] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -336,12 +338,23 @@ export function AddProductForm() {
         onClose={() => setShowScanner(false)}
       />
     )}
+    <ConfirmExitDialog
+      open={showConfirmExit}
+      onConfirm={() => router.back()}
+      onCancel={() => setShowConfirmExit(false)}
+    />
     <div className="flex h-full flex-col bg-bg">
       {/* Top bar */}
       <header className="flex items-center justify-between px-[18px] pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (name.trim() !== "" && editingItemId === null) {
+              setShowConfirmExit(true);
+            } else {
+              router.back();
+            }
+          }}
           aria-label="Cancelar y volver"
           className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-alt"
         >
