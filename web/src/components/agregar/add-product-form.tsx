@@ -12,6 +12,7 @@ import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
 import { ConfirmExitDialog } from "./confirm-exit-dialog";
+import { SessionSummary } from "./session-summary";
 
 const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "cerrado", label: "Cerrado", icon: "closed" },
@@ -149,6 +150,7 @@ export function AddProductForm() {
   const [sessionExpanded, setSessionExpanded] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showConfirmExit, setShowConfirmExit] = useState(false);
+  const [summaryItems, setSummaryItems] = useState<SessionItem[]>([]);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
@@ -312,14 +314,22 @@ export function AddProductForm() {
       setNameError(true);
       return;
     }
-    addProduct({
+    const finalItem: SessionItem = {
       id: Date.now().toString(),
       name: name.trim(),
       category,
       state,
       daysUntilExpiry,
-    });
-    router.push("/despensa");
+      expiryDate,
+      quantity: 1,
+    };
+    addProduct(finalItem);
+
+    if (sessionProducts.length > 0) {
+      setSummaryItems([...sessionProducts, finalItem]);
+    } else {
+      router.push("/despensa");
+    }
   }
 
   return (
@@ -336,6 +346,12 @@ export function AddProductForm() {
       <BarcodeScanner
         onDetected={handleScanDetected}
         onClose={() => setShowScanner(false)}
+      />
+    )}
+    {summaryItems.length > 0 && (
+      <SessionSummary
+        items={summaryItems}
+        onConfirm={() => router.push("/despensa")}
       />
     )}
     <ConfirmExitDialog
