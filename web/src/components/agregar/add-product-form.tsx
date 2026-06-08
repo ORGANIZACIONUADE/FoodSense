@@ -129,7 +129,7 @@ type SessionItem = {
 
 export function AddProductForm() {
   const router = useRouter();
-  const { addProduct, updateProduct } = useInventory();
+  const { addProduct, updateProduct, remove } = useInventory();
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
@@ -195,6 +195,11 @@ export function AddProductForm() {
     if (!expiryWasCustomized) {
       setExpiryDate(addDaysToToday(getSuggestedExpiryDays(category, nextState)));
     }
+  }
+
+  function handleRemoveFromSession(id: string) {
+    setSessionProducts((prev) => prev.filter((p) => p.id !== id));
+    remove(id);
   }
 
   function handleQuantityChange(id: string, delta: number) {
@@ -552,6 +557,14 @@ export function AddProductForm() {
                         className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-ink-soft transition-colors active:bg-border"
                       >
                         <Icon name="pencil" size={13} color="currentColor" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFromSession(item.id)}
+                        aria-label="Eliminar de la lista"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-ink-soft transition-colors active:bg-red/10 active:text-red active:border-red/30"
+                      >
+                        <Icon name="trash" size={13} color="currentColor" />
                       </button>
                     </div>
                   </div>
