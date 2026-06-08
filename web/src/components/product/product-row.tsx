@@ -20,6 +20,7 @@ type ProductRowProps = {
   variant?: "default" | "responsive";
   onConsume?: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 };
 
 export function ProductRow({
@@ -29,6 +30,7 @@ export function ProductRow({
   variant = "default",
   onConsume,
   onDelete,
+  onEdit,
 }: ProductRowProps) {
   const cat = CATEGORIES[product.category];
   const st = STATE_META[product.state];
@@ -80,11 +82,30 @@ export function ProductRow({
           {rank}
         </span>
       )}
-      <CategoryIcon category={product.category} size={isResponsive ? 44 : 44} />
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Editar ${product.name}`}
+          className="shrink-0 transition-opacity hover:opacity-80 active:scale-95"
+        >
+          <CategoryIcon category={product.category} size={isResponsive ? 44 : 44} />
+        </button>
+      ) : (
+        <CategoryIcon category={product.category} size={isResponsive ? 44 : 44} />
+      )}
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-[14.5px] font-semibold tracking-tight lg:text-base">
-          {product.name}
-        </h3>
+        {onEdit ? (
+          <button type="button" onClick={onEdit} className="text-left w-full hover:opacity-80 transition-opacity">
+            <h3 className="truncate text-[14.5px] font-semibold tracking-tight lg:text-base">
+              {product.name}
+            </h3>
+          </button>
+        ) : (
+          <h3 className="truncate text-[14.5px] font-semibold tracking-tight lg:text-base">
+            {product.name}
+          </h3>
+        )}
         <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-ink-soft lg:text-sm">
           <span>{cat.label}</span>
           <span className="text-ink-faint">·</span>

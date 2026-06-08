@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { CategoryFilters } from "@/components/despensa/category-filters";
 import { InventoryLegend } from "@/components/despensa/inventory-legend";
@@ -15,6 +16,7 @@ import { DeleteProductDialog } from "@/components/despensa/delete-product-dialog
 import type { CategoryKey, Product } from "@/lib/types";
 
 export default function DespensaPage() {
+  const router = useRouter();
   const { products, consume, remove } = useInventory();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -135,6 +137,7 @@ export default function DespensaPage() {
                       variant="responsive"
                       onConsume={() => consume(product.id)}
                       onDelete={() => setProductToDelete(product)}
+                      onEdit={() => router.push(`/editar/${product.id}`)}
                     />
                   </li>
                 ))}
