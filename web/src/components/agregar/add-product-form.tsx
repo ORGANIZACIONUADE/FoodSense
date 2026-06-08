@@ -103,16 +103,29 @@ function formatStateHint(state: ProductState): string {
   return `Sugerencia: ${STATE_LABELS[state]}`;
 }
 
+const CATEGORY_KEYWORDS: Record<CategoryKey, string[]> = {
+  lacteos: ["leche", "queso", "yogur", "manteca", "crema", "lacteo", "dulce de leche", "postrecito", "ricota", "mozzarella", "provoleta", "sancor", "la serenisima"],
+  carnes: ["carne", "pollo", "cerdo", "pescado", "hamburguesa", "salchicha", "matambre", "asado", "vacio", "chorizo", "morcilla", "milanesa", "bondiola", "pechuga", "bife", "entraña", "costilla", "chinchulin", "molida", "picada", "merluza", "salmon", "atun fresco"],
+  verduras: ["lechuga", "tomate", "cebolla", "papa", "zanahoria", "verdura", "zapallo", "morron", "ajo", "acelga", "espinaca", "rucula", "batata", "palta", "pepino", "zucchini", "berenjena", "apio", "puerro", "perejil", "cilantro", "albahaca", "remolacha"],
+  frutas: ["manzana", "banana", "naranja", "pera", "uva", "fruta", "mandarina", "limon", "pomelo", "durazno", "ciruela", "frutilla", "arandano", "kiwi", "sandia", "melon", "cereza", "anana"],
+  panificados: ["pan", "galletita", "factura", "torta", "budin", "harina", "alfajor", "medialuna", "bizcocho", "pepa", "pionono", "tarta", "empanada", "prepisa", "tostada", "churro", "pancho", "pebete", "miga"],
+  bebidas: ["agua", "jugo", "gaseosa", "coca", "sprite", "cerveza", "vino", "bebida", "fernet", "soda", "limonada", "te", "cafe", "mate", "yerba", "licor", "champagne", "sidra", "tonica", "paso de los toros", "pritty", "manaos", "cepita", "baggio"],
+  huevos: ["huevo", "maple", "codorniz"],
+  conservas: ["lata", "arroz", "fideo", "salsa", "arveja", "choclo", "lenteja", "conserva", "atun", "jurel", "caballa", "mayonesa", "ketchup", "mostaza", "mermelada", "polenta", "garbanzo", "poroto", "aceite", "vinagre", "sal", "azucar", "edulcorante", "caldo", "sopa", "pure de tomate", "sardina", "picadillo", "pate", "aderezo", "chimichurri", "provenzal"]
+};
+
 function inferCategoryFromName(name: string): CategoryKey | null {
   const s = name.toLowerCase();
-  if (/leche|queso|yogur|manteca|crema|lacteo/.test(s)) return "lacteos";
-  if (/carne|pollo|cerdo|pescado|hamburguesa|salchicha/.test(s)) return "carnes";
-  if (/lechuga|tomate|cebolla|papa|zanahoria|verdura|zapallo/.test(s)) return "verduras";
-  if (/manzana|banana|naranja|pera|uva|fruta/.test(s)) return "frutas";
-  if (/pan|galletita|factura|torta|budin|harina/.test(s)) return "panificados";
-  if (/agua|jugo|gaseosa|coca|sprite|cerveza|vino|bebida/.test(s)) return "bebidas";
-  if (/huevo/.test(s)) return "huevos";
-  if (/lata|arroz|fideo|salsa|arveja|choclo|lenteja|conserva/.test(s)) return "conservas";
+  
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS) as [CategoryKey, string[]][]) {
+    for (const kw of keywords) {
+      // Búsqueda de palabra exacta con soporte para plurales (s o es)
+      const regex = new RegExp(`\\b${kw}(s|es)?\\b`, 'i');
+      if (regex.test(s)) {
+        return category;
+      }
+    }
+  }
   return null;
 }
 
