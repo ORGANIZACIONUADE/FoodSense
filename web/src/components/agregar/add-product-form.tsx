@@ -13,6 +13,7 @@ import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
 import { ConfirmExitDialog } from "./confirm-exit-dialog";
 import { SessionSummary } from "./session-summary";
+import { ExpiryDatePicker } from "./expiry-date-picker";
 
 const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
   { id: "cerrado", label: "Cerrado", icon: "closed" },
@@ -25,14 +26,6 @@ const STATE_LABELS: Record<ProductState, string> = {
   abierto: "Abierto",
   congelado: "Congelado",
 };
-
-const QUICK_PRESETS = [
-  { label: "Hoy", days: 0 },
-  { label: "3 días", days: 3 },
-  { label: "1 semana", days: 7 },
-  { label: "2 semanas", days: 14 },
-  { label: "1 mes", days: 30 },
-];
 
 const DEFAULT_EXPIRY_BY_CATEGORY_AND_STATE: Record<
   CategoryKey,
@@ -151,16 +144,12 @@ export function AddProductForm() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showConfirmExit, setShowConfirmExit] = useState(false);
   const [summaryItems, setSummaryItems] = useState<SessionItem[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
   const dateHint = formatExpiryHint(getSuggestedExpiryDays(category, state));
   const stateHint = formatStateHint(getSuggestedState(category));
-
-  function handlePreset(days: number) {
-    setExpiryWasCustomized(true);
-    setExpiryDate(addDaysToToday(days));
-  }
 
   function handleCategoryChange(nextCategory: CategoryKey, isManual = true) {
     if (isManual) setHasManuallyChangedCategory(true);
@@ -359,6 +348,12 @@ export function AddProductForm() {
       onConfirm={() => router.back()}
       onCancel={() => setShowConfirmExit(false)}
     />
+    <ExpiryDatePicker
+      open={showDatePicker}
+      value={expiryDate}
+      onChange={(date) => handleExpiryDateChange(date)}
+      onClose={() => setShowDatePicker(false)}
+    />
     <div className="flex h-full flex-col bg-bg">
       {/* Top bar */}
       <header className="flex items-center justify-between px-[18px] pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -499,32 +494,13 @@ export function AddProductForm() {
 
         {/* Fecha de vencimiento */}
         <FormSection label="Fecha de vencimiento" hint={dateHint}>
-          {/* Quick presets */}
-          <div className="mb-2.5 flex gap-1.5">
-            {QUICK_PRESETS.map((p) => {
-              const targetDate = addDaysToToday(p.days);
-              const isActive = expiryDate === targetDate;
-              return (
-                <button
-                  key={p.days}
-                  type="button"
-                  onClick={() => handlePreset(p.days)}
-                  className={`flex-1 rounded-xl border py-2.5 text-[12.5px] transition-colors ${
-                    isActive
-                      ? "border-green bg-green font-bold text-white"
-                      : "border-border bg-surface font-semibold text-ink hover:border-green/50"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Date display + native input */}
-          <label className="relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5">
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(true)}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-green/40"
+          >
             <Icon name="calendar" size={20} color="#5C6460" />
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <p className="font-mono text-[10px] uppercase tracking-[1.3px] text-ink-mute">
                 Vence
               </p>
@@ -533,15 +509,7 @@ export function AddProductForm() {
               </p>
             </div>
             <DaysPill days={daysUntilExpiry} />
-            {/* Native date input covering the whole row */}
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => handleExpiryDateChange(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-              tabIndex={-1}
-            />
-          </label>
+          </button>
         </FormSection>
       </div>
 
