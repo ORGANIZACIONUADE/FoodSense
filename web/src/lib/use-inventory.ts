@@ -21,14 +21,19 @@ function save(products: Product[]): void {
 }
 
 export function useInventory() {
-  // Lazy initializer: server gets mock, client gets localStorage (o mock si está vacío)
-  const [products, setProducts] = useState<Product[]>(() =>
-    typeof window === "undefined" ? getInventoryByUrgency() : load(),
-  );
+  const [products, setProducts] = useState<Product[]>(getInventoryByUrgency);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    save(products);
-  }, [products]);
+    setProducts(load());
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      save(products);
+    }
+  }, [products, isLoaded]);
 
   function addProduct(product: Product) {
     setProducts((prev) =>
@@ -50,5 +55,5 @@ export function useInventory() {
     );
   }
 
-  return { products, addProduct, consume, remove, updateProduct };
+  return { products, addProduct, consume, remove, updateProduct, isLoaded };
 }
