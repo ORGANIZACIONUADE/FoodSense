@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
+import { useAuth } from "@/context/auth-context";
 import type { NavId } from "./side-nav";
 
 const TABS: { id: NavId; label: string; icon: string; href: string | null }[] = [
@@ -13,8 +17,15 @@ type TabBarProps = {
   active: NavId;
 };
 
-/** Navegación visual del wireframe; otras pantallas llegan en sprints siguientes. */
 export function TabBar({ active }: TabBarProps) {
+  const { session, logout } = useAuth();
+  const router = useRouter();
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
+
   return (
     <nav
       className="sticky bottom-0 z-10 border-t border-border bg-surface/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-sm lg:hidden"
@@ -26,6 +37,20 @@ export function TabBar({ active }: TabBarProps) {
           const className = `flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium ${
             isActive ? "text-green" : "text-ink-mute"
           }`;
+
+          if (tab.id === "profile") {
+            return (
+              <li key={tab.id}>
+                <button onClick={handleLogout} className={className}>
+                  <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-green-soft text-[10px] font-bold text-green-deep">
+                    {session?.nombre[0].toUpperCase() ?? "?"}
+                  </span>
+                  Salir
+                </button>
+              </li>
+            );
+          }
+
           const inner = (
             <>
               <Icon
@@ -37,6 +62,7 @@ export function TabBar({ active }: TabBarProps) {
               {tab.label}
             </>
           );
+
           return (
             <li key={tab.id}>
               {tab.href ? (

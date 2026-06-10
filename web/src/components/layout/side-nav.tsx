@@ -1,20 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
+import { useAuth } from "@/context/auth-context";
 
 const NAV_ITEMS = [
   { id: "home",    label: "Inicio",   icon: "home",  href: null },
   { id: "pantry",  label: "Despensa", icon: "list",  href: "/despensa" },
   { id: "alerts",  label: "Alertas",  icon: "bell",  href: null },
-  { id: "profile", label: "Perfil",   icon: "user",  href: null },
 ] as const;
 
-export type NavId = (typeof NAV_ITEMS)[number]["id"];
+export type NavId = "home" | "pantry" | "alerts" | "profile";
 
 type SideNavProps = {
   active: NavId;
 };
 
 export function SideNav({ active }: SideNavProps) {
+  const { session, logout } = useAuth();
+  const router = useRouter();
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
+
   return (
     <aside
       className="hidden w-[240px] shrink-0 flex-col border-r border-border bg-surface lg:flex"
@@ -70,9 +81,28 @@ export function SideNav({ active }: SideNavProps) {
         })}
       </nav>
 
-      <p className="px-6 py-4 text-[11px] leading-relaxed text-ink-mute">
-        Sprint 1 · Panel de inventario
-      </p>
+      {session && (
+        <div className="border-t border-border-soft px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-soft text-sm font-bold text-green-deep">
+              {session.nombre[0].toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-ink">
+                {session.nombre}
+              </p>
+              <p className="truncate text-[11px] text-ink-mute">{session.email}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="shrink-0 rounded-lg p-1.5 text-ink-mute transition-colors hover:bg-surface-alt hover:text-ink"
+              title="Cerrar sesión"
+            >
+              <Icon name="x" size={16} color="currentColor" />
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
