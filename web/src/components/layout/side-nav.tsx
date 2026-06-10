@@ -83,7 +83,7 @@ export function SideNav({ active }: SideNavProps) {
 
       {session && (
         <div className="border-t border-border-soft px-4 py-4">
-          <div className="flex items-center gap-3">
+          <Link href="/perfil" className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-surface-alt">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-soft text-sm font-bold text-green-deep">
               {session.nombre[0].toUpperCase()}
             </div>
@@ -93,14 +93,17 @@ export function SideNav({ active }: SideNavProps) {
               </p>
               <p className="truncate text-[11px] text-ink-mute">{session.email}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="shrink-0 rounded-lg p-1.5 text-ink-mute transition-colors hover:bg-surface-alt hover:text-ink"
-              title="Cerrar sesión"
-            >
-              <Icon name="x" size={16} color="currentColor" />
-            </button>
-          </div>
+            <span className="rotate-180">
+              <Icon name="chevronLeft" size={16} color="#9AA09C" strokeWidth={2} />
+            </span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-red transition-colors hover:bg-red-wash"
+          >
+            <Icon name="x" size={14} color="#D85B4A" />
+            Cerrar sesión
+          </button>
         </div>
       )}
     </aside>

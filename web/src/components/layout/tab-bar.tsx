@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
 import { useAuth } from "@/context/auth-context";
 import type { NavId } from "./side-nav";
@@ -10,7 +9,7 @@ const TABS: { id: NavId; label: string; icon: string; href: string | null }[] = 
   { id: "home",    label: "Inicio",   icon: "home", href: null },
   { id: "pantry",  label: "Despensa", icon: "list", href: "/despensa" },
   { id: "alerts",  label: "Alertas",  icon: "bell", href: null },
-  { id: "profile", label: "Perfil",   icon: "user", href: null },
+  { id: "profile", label: "Perfil",   icon: "user", href: "/perfil" },
 ];
 
 type TabBarProps = {
@@ -18,13 +17,7 @@ type TabBarProps = {
 };
 
 export function TabBar({ active }: TabBarProps) {
-  const { session, logout } = useAuth();
-  const router = useRouter();
-
-  function handleLogout() {
-    logout();
-    router.push("/login");
-  }
+  const { session } = useAuth();
 
   return (
     <nav
@@ -38,30 +31,25 @@ export function TabBar({ active }: TabBarProps) {
             isActive ? "text-green" : "text-ink-mute"
           }`;
 
-          if (tab.id === "profile") {
-            return (
-              <li key={tab.id}>
-                <button onClick={handleLogout} className={className}>
-                  <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-green-soft text-[10px] font-bold text-green-deep">
-                    {session?.nombre[0].toUpperCase() ?? "?"}
-                  </span>
-                  Salir
-                </button>
-              </li>
+          const inner =
+            tab.id === "profile" ? (
+              <>
+                <span className={`flex h-[22px] w-[22px] items-center justify-center rounded-full text-[10px] font-bold ${isActive ? "bg-green-soft text-green-deep" : "bg-surface-alt text-ink-soft"}`}>
+                  {session?.nombre[0].toUpperCase() ?? "?"}
+                </span>
+                {tab.label}
+              </>
+            ) : (
+              <>
+                <Icon
+                  name={tab.icon}
+                  size={22}
+                  color={isActive ? "#2F8F5C" : "#9AA09C"}
+                  strokeWidth={isActive ? 2 : 1.75}
+                />
+                {tab.label}
+              </>
             );
-          }
-
-          const inner = (
-            <>
-              <Icon
-                name={tab.icon}
-                size={22}
-                color={isActive ? "#2F8F5C" : "#9AA09C"}
-                strokeWidth={isActive ? 2 : 1.75}
-              />
-              {tab.label}
-            </>
-          );
 
           return (
             <li key={tab.id}>

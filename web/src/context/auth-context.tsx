@@ -6,6 +6,7 @@ import {
   loginUser,
   registerUser,
   saveSession,
+  updateUser,
   type Session,
 } from "@/lib/auth";
 
@@ -14,6 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   login(email: string, clave: string): { ok: boolean; error?: string };
   register(email: string, nombre: string, clave: string): { ok: boolean; error?: string };
+  update(changes: { nombre?: string; clave?: string; claveActual?: string }): { ok: boolean; error?: string };
   logout(): void;
 }
 
@@ -46,13 +48,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }
 
+  function update(changes: { nombre?: string; clave?: string; claveActual?: string }) {
+    if (!session) return { ok: false, error: "No hay sesión activa." };
+    const result = updateUser(session.email, changes);
+    if (!result.ok) return { ok: false, error: result.error };
+    const s: Session = { email: result.user.email, nombre: result.user.nombre };
+    saveSession(s);
+    setSession(s);
+    return { ok: true };
+  }
+
   function logout() {
     saveSession(null);
     setSession(null);
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ session, loading, login, register, update, logout }}>
       {children}
     </AuthContext.Provider>
   );

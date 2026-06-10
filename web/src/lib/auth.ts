@@ -16,10 +16,19 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+const SEED_USERS: User[] = [
+  { email: "test@foodsense.com", nombre: "Usuario Test", clave: "1234" },
+];
+
 export function getUsers(): User[] {
   if (!isBrowser()) return [];
   try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) ?? "[]");
+    const stored = localStorage.getItem(USERS_KEY);
+    if (!stored) {
+      saveUsers(SEED_USERS);
+      return SEED_USERS;
+    }
+    return JSON.parse(stored);
   } catch {
     return [];
   }
@@ -73,4 +82,28 @@ export function loginUser(
     return { ok: false, error: "Email o contraseña incorrectos." };
   }
   return { ok: true, user };
+}
+
+export function updateUser(
+  email: string,
+  changes: { nombre?: string; clave?: string; claveActual?: string }
+): { ok: true; user: User } | { ok: false; error: string } {
+  const users = getUsers();
+  const idx = users.findIndex((u) => u.email === email);
+  if (idx === -1) return { ok: false, error: "Usuario no encontrado." };
+
+  if (changes.clave) {
+    if (!changes.claveActual) return { ok: false, error: "Ingresá tu contraseña actual." };
+    if (users[idx].clave !== changes.claveActual)
+      return { ok: false, error: "La contraseña actual es incorrecta." };
+  }
+
+  const updated: User = {
+    ...users[idx],
+    ...(changes.nombre?.trim() ? { nombre: changes.nombre.trim() } : {}),
+    ...(changes.clave ? { clave: changes.clave } : {}),
+  };
+  users[idx] = updated;
+  saveUsers(users);
+  return { ok: true, user: updated };
 }
