@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { CategoryFilters } from "@/components/despensa/category-filters";
 import { InventoryLegend } from "@/components/despensa/inventory-legend";
@@ -17,16 +18,19 @@ import type { CategoryKey, Product } from "@/lib/types";
 
 export default function DespensaPage() {
   const session = useRequireAuth();
+  const router = useRouter();
   const { products, consume, remove } = useInventory();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   if (!session) return null;
 
-  const displayed =
-    selectedCategory === "todos"
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+  const displayed = products.filter((p) => {
+    const matchesCategory = selectedCategory === "todos" || p.category === selectedCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const urgentCount = countUrgent(displayed);
 
@@ -53,12 +57,18 @@ export default function DespensaPage() {
         </div>
 
         <div
-          className="flex h-11 items-center gap-2.5 rounded-md border border-border bg-surface px-3.5 text-ink-mute lg:h-12 lg:max-w-xl"
+          className="flex h-11 items-center gap-2.5 rounded-md border border-border bg-surface px-3.5 text-ink-mute lg:h-12 lg:max-w-xl focus-within:border-green focus-within:ring-1 focus-within:ring-green transition-shadow"
           role="search"
-          aria-label="Buscar en la despensa (próximamente)"
         >
           <Icon name="search" size={18} color="#9AA09C" />
-          <span className="text-sm">Buscar en la despensa…</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar en la despensa…"
+            className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-mute outline-none"
+            aria-label="Buscar en la despensa"
+          />
         </div>
 
         <CategoryFilters
@@ -139,6 +149,7 @@ export default function DespensaPage() {
                       variant="responsive"
                       onConsume={() => consume(product.id)}
                       onDelete={() => setProductToDelete(product)}
+                      onEdit={() => router.push(`/editar/${product.id}`)}
                     />
                   </li>
                 ))}
