@@ -19,11 +19,11 @@ export default function LoginPage() {
     if (!loading && session) router.replace("/despensa");
   }, [loading, session, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = login(email, clave);
+    const result = await login(email, clave);
     if (!result.ok) {
       setError(result.error ?? "Error al ingresar.");
       setSubmitting(false);

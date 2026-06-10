@@ -2,21 +2,21 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import {
-  getSession,
   loginUser,
   registerUser,
-  saveSession,
   updateUser,
+  logoutUser,
+  subscribeToAuth,
   type Session,
 } from "@/lib/auth";
 
 interface AuthContextValue {
   session: Session | null;
   loading: boolean;
-  login(email: string, clave: string): { ok: boolean; error?: string };
-  register(email: string, nombre: string, clave: string): { ok: boolean; error?: string };
-  update(changes: { nombre?: string; clave?: string; claveActual?: string }): { ok: boolean; error?: string };
-  logout(): void;
+  login(email: string, clave: string): Promise<{ ok: boolean; error?: string }>;
+  register(email: string, nombre: string, clave: string): Promise<{ ok: boolean; error?: string }>;
+  update(changes: { nombre?: string; clave?: string; claveActual?: string }): Promise<{ ok: boolean; error?: string }>;
+  logout(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,40 +26,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSession(getSession());
-    setLoading(false);
+    const unsubscribe = subscribeToAuth((s) => {
+      setSession(s);
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  function login(email: string, clave: string) {
-    const result = loginUser(email, clave);
+  async function login(email: string, clave: string) {
+    const result = await loginUser(email, clave);
     if (!result.ok) return { ok: false, error: result.error };
-    const s: Session = { email: result.user.email, nombre: result.user.nombre };
-    saveSession(s);
-    setSession(s);
+    setSession(result.user);
     return { ok: true };
   }
 
-  function register(email: string, nombre: string, clave: string) {
-    const result = registerUser(email, nombre, clave);
+  async function register(email: string, nombre: string, clave: string) {
+    const result = await registerUser(email, nombre, clave);
     if (!result.ok) return { ok: false, error: result.error };
-    const s: Session = { email: result.user.email, nombre: result.user.nombre };
-    saveSession(s);
-    setSession(s);
+    setSession(result.user);
     return { ok: true };
   }
 
-  function update(changes: { nombre?: string; clave?: string; claveActual?: string }) {
-    if (!session) return { ok: false, error: "No hay sesión activa." };
-    const result = updateUser(session.email, changes);
+  async function update(changes: { nombre?: string; clave?: string; claveActual?: string }) {
+    const result = await updateUser(changes);
     if (!result.ok) return { ok: false, error: result.error };
-    const s: Session = { email: result.user.email, nombre: result.user.nombre };
-    saveSession(s);
-    setSession(s);
+    if (result.nombre && session) {
+      setSession({ ...session, nombre: result.nombre });
+    }
     return { ok: true };
   }
 
-  function logout() {
-    saveSession(null);
+  async function logout() {
+    await logoutUser();
     setSession(null);
   }
 

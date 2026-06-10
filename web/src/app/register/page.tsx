@@ -20,11 +20,11 @@ export default function RegisterPage() {
     if (!loading && session) router.replace("/despensa");
   }, [loading, session, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = register(email, nombre, clave);
+    const result = await register(email, nombre, clave);
     if (!result.ok) {
       setError(result.error ?? "Error al registrarse.");
       setSubmitting(false);

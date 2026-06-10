@@ -22,10 +22,10 @@ export default function PerfilPage() {
 
   if (!session) return null;
 
-  function handleDatos(e: React.FormEvent) {
+  async function handleDatos(e: React.FormEvent) {
     e.preventDefault();
     setMsgDatos(null);
-    const result = update({ nombre });
+    const result = await update({ nombre });
     if (!result.ok) {
       setMsgDatos({ ok: false, text: result.error ?? "Error al guardar." });
     } else {
@@ -33,13 +33,13 @@ export default function PerfilPage() {
     }
   }
 
-  function handleClave(e: React.FormEvent) {
+  async function handleClave(e: React.FormEvent) {
     e.preventDefault();
     setMsgClave(null);
     if (!claveNueva) return setMsgClave({ ok: false, text: "Ingresá la nueva contraseña." });
     if (claveNueva !== claveConfirm)
       return setMsgClave({ ok: false, text: "Las contraseñas no coinciden." });
-    const result = update({ claveActual, clave: claveNueva });
+    const result = await update({ claveActual, clave: claveNueva });
     if (!result.ok) {
       setMsgClave({ ok: false, text: result.error ?? "Error al cambiar contraseña." });
     } else {
@@ -50,8 +50,8 @@ export default function PerfilPage() {
     }
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     router.push("/login");
   }
 
