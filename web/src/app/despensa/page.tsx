@@ -18,10 +18,10 @@ import type { CategoryKey, Product } from "@/lib/types";
 export default function DespensaPage() {
   const session = useRequireAuth();
   const { products, consume, remove } = useInventory();
-
-  if (!session) return null;
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  if (!session) return null;
 
   const displayed =
     selectedCategory === "todos"
