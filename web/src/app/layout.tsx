@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   title: "FoodSense — Despensa",
   description:
     "Gestioná tu inventario de alimentos y priorizá lo que vence antes.",
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {

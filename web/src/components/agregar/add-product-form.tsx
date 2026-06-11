@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
+import { CameraScanner } from "./camera-scanner";
 import { DaysPill } from "@/components/product/days-pill";
 import { CATEGORIES } from "@/lib/categories";
 import { useInventory } from "@/lib/use-inventory";
@@ -10,11 +11,12 @@ import type { CategoryKey, ProductState } from "@/lib/types";
 import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
+import { ConfirmExitDialog } from "./confirm-exit-dialog";
+import { SessionSummary } from "./session-summary";
+import { ExpiryDatePicker } from "./expiry-date-picker";
 
 import {
   STATE_OPTIONS,
-  STATE_LABELS,
-  QUICK_PRESETS,
   addDaysToToday,
   dateToDays,
   formatDateLabel,
@@ -37,7 +39,7 @@ type SessionItem = {
 
 export function AddProductForm() {
   const router = useRouter();
-  const { addProduct, updateProduct } = useInventory();
+  const { addProduct, updateProduct, remove } = useInventory();
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
@@ -50,20 +52,19 @@ export function AddProductForm() {
   const [hasManuallyChangedCategory, setHasManuallyChangedCategory] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [nameError, setNameError] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [sessionProducts, setSessionProducts] = useState<SessionItem[]>([]);
   const [sessionExpanded, setSessionExpanded] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showConfirmExit, setShowConfirmExit] = useState(false);
+  const [summaryItems, setSummaryItems] = useState<SessionItem[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const daysUntilExpiry = dateToDays(expiryDate);
   const dateLabel = formatDateLabel(expiryDate);
   const dateHint = formatExpiryHint(getSuggestedExpiryDays(category, state));
   const stateHint = formatStateHint(getSuggestedState(category));
-
-  function handlePreset(days: number) {
-    setExpiryWasCustomized(true);
-    setExpiryDate(addDaysToToday(days));
-  }
 
   function handleCategoryChange(nextCategory: CategoryKey, isManual = true) {
     if (isManual) setHasManuallyChangedCategory(true);
@@ -102,6 +103,11 @@ export function AddProductForm() {
     if (!expiryWasCustomized) {
       setExpiryDate(addDaysToToday(getSuggestedExpiryDays(category, nextState)));
     }
+  }
+
+  function handleRemoveFromSession(id: string) {
+    setSessionProducts((prev) => prev.filter((p) => p.id !== id));
+    remove(id);
   }
 
   function handleQuantityChange(id: string, delta: number) {
@@ -217,14 +223,22 @@ export function AddProductForm() {
       setNameError(true);
       return;
     }
-    addProduct({
+    const finalItem: SessionItem = {
       id: Date.now().toString(),
       name: name.trim(),
       category,
       state,
       daysUntilExpiry,
-    });
-    router.push("/despensa");
+      expiryDate,
+      quantity: 1,
+    };
+    addProduct(finalItem);
+
+    if (sessionProducts.length > 0) {
+      setSummaryItems([...sessionProducts, finalItem]);
+    } else {
+      router.push("/despensa");
+    }
   }
 
   return (
@@ -243,12 +257,35 @@ export function AddProductForm() {
         onClose={() => setShowScanner(false)}
       />
     )}
+    {summaryItems.length > 0 && (
+      <SessionSummary
+        items={summaryItems}
+        onConfirm={() => router.push("/despensa")}
+      />
+    )}
+    <ConfirmExitDialog
+      open={showConfirmExit}
+      onConfirm={() => router.back()}
+      onCancel={() => setShowConfirmExit(false)}
+    />
+    <ExpiryDatePicker
+      open={showDatePicker}
+      value={expiryDate}
+      onChange={(date) => handleExpiryDateChange(date)}
+      onClose={() => setShowDatePicker(false)}
+    />
     <div className="flex h-full flex-col bg-bg">
       {/* Top bar */}
       <header className="flex items-center justify-between px-[18px] pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (name.trim() !== "" && editingItemId === null) {
+              setShowConfirmExit(true);
+            } else {
+              router.back();
+            }
+          }}
           aria-label="Cancelar y volver"
           className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-alt"
         >
@@ -377,32 +414,13 @@ export function AddProductForm() {
 
         {/* Fecha de vencimiento */}
         <FormSection label="Fecha de vencimiento" hint={dateHint}>
-          {/* Quick presets */}
-          <div className="mb-2.5 flex gap-1.5">
-            {QUICK_PRESETS.map((p) => {
-              const targetDate = addDaysToToday(p.days);
-              const isActive = expiryDate === targetDate;
-              return (
-                <button
-                  key={p.days}
-                  type="button"
-                  onClick={() => handlePreset(p.days)}
-                  className={`flex-1 rounded-xl border py-2.5 text-[12.5px] transition-colors ${
-                    isActive
-                      ? "border-green bg-green font-bold text-white"
-                      : "border-border bg-surface font-semibold text-ink hover:border-green/50"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Date display + native input */}
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5">
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(true)}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-green/40"
+          >
             <Icon name="calendar" size={20} color="#5C6460" />
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <p className="font-mono text-[10px] uppercase tracking-[1.3px] text-ink-mute">
                 Vence
               </p>
@@ -411,16 +429,7 @@ export function AddProductForm() {
               </p>
             </div>
             <DaysPill days={daysUntilExpiry} />
-            {/* Native date input visually hidden but tappable over the whole row */}
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => handleExpiryDateChange(e.target.value)}
-              className="absolute opacity-0"
-              style={{ width: 1, height: 1 }}
-              tabIndex={-1}
-            />
-          </label>
+          </button>
         </FormSection>
       </div>
 
@@ -465,6 +474,14 @@ export function AddProductForm() {
                         className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-ink-soft transition-colors active:bg-border"
                       >
                         <Icon name="pencil" size={13} color="currentColor" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFromSession(item.id)}
+                        aria-label="Eliminar de la lista"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface-alt text-ink-soft transition-colors active:bg-red/10 active:text-red active:border-red/30"
+                      >
+                        <Icon name="trash" size={13} color="currentColor" />
                       </button>
                     </div>
                   </div>
@@ -539,6 +556,8 @@ export function AddProductForm() {
           )}
         </div>
       </div>
+
+      {showCamera && <CameraScanner onClose={() => setShowCamera(false)} />}
     </div>
     </>
   );

@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) router.replace("/despensa");
+    if (!loading && session) router.replace("/");
   }, [loading, session, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -30,7 +30,7 @@ export default function LoginPage() {
       setSubmitting(false);
       return;
     }
-    router.replace("/despensa");
+    router.replace("/");
   }
 
   async function handleGoogle() {
@@ -42,7 +42,7 @@ export default function LoginPage() {
       setGoogleLoading(false);
       return;
     }
-    router.replace("/despensa");
+    router.replace("/");
   }
 
   if (loading || session) return null;

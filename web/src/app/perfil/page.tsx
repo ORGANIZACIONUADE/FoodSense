@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons/icon";
 import { useAuth } from "@/context/auth-context";
+import { useNotificationSettings } from "@/lib/use-notification-settings";
 import { useRequireAuth } from "@/lib/use-require-auth";
 
 export default function PerfilPage() {
   const session = useRequireAuth();
-  const { update, logout } = useAuth();
+  const { update, logout, resendVerification, refreshSession } = useAuth();
+  const { settings, loading: loadingNotifications, saving: savingNotifications, enable, disable } =
+    useNotificationSettings(session);
   const router = useRouter();
 
   const [nombre, setNombre] = useState(session?.nombre ?? "");
@@ -19,6 +22,8 @@ export default function PerfilPage() {
 
   const [msgDatos, setMsgDatos] = useState<{ ok: boolean; text: string } | null>(null);
   const [msgClave, setMsgClave] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msgEmail, setMsgEmail] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailActionLoading, setEmailActionLoading] = useState(false);
 
   if (!session) return null;
 
@@ -50,10 +55,44 @@ export default function PerfilPage() {
     }
   }
 
+  async function handleResendVerification() {
+    setMsgEmail(null);
+    setEmailActionLoading(true);
+    const result = await resendVerification();
+    setEmailActionLoading(false);
+    setMsgEmail(
+      result.ok
+        ? { ok: true, text: "Te enviamos un correo de confirmación." }
+        : { ok: false, text: result.error ?? "No se pudo enviar el correo." },
+    );
+  }
+
+  async function handleRefreshVerification() {
+    setMsgEmail(null);
+    setEmailActionLoading(true);
+    const result = await refreshSession();
+    setEmailActionLoading(false);
+    setMsgEmail(
+      result.ok
+        ? { ok: true, text: "Estado de la cuenta actualizado." }
+        : { ok: false, text: result.error ?? "No se pudo actualizar el estado." },
+    );
+  }
+
   async function handleLogout() {
     await logout();
     router.push("/login");
   }
+
+  const notificationCopy = {
+    unsupported: settings.error ?? "Este navegador no soporta notificaciones web.",
+    "missing-config": "Falta configurar NEXT_PUBLIC_FIREBASE_VAPID_KEY.",
+    default: "Activá avisos de vencimiento para esta cuenta y dispositivo.",
+    granted: "El permiso está concedido, pero los avisos están pausados.",
+    denied: "El navegador bloqueó las notificaciones. Podés habilitarlas desde la configuración del sitio.",
+    enabled: "Vas a recibir avisos cuando haya productos por vencer.",
+    error: settings.error ?? "No se pudieron configurar las notificaciones.",
+  }[settings.status];
 
   return (
     <AppShell active="profile">
@@ -77,6 +116,58 @@ export default function PerfilPage() {
             <p className="text-sm text-ink-mute">{session.email}</p>
           </div>
         </div>
+
+        {session.provider === "password" && (
+          <section className={`mb-5 rounded-2xl border p-5 shadow-sm ${session.emailVerified ? "border-green-soft bg-green-wash" : "border-amber-soft bg-amber-wash"}`}>
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${session.emailVerified ? "bg-green-soft" : "bg-amber-soft"}`}>
+                <Icon
+                  name={session.emailVerified ? "check" : "bell"}
+                  size={19}
+                  color={session.emailVerified ? "#1F6B43" : "#B8772D"}
+                  strokeWidth={2.2}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
+                  Confirmación de email
+                </h2>
+                <p className="mt-1 text-sm text-ink-soft">
+                  {session.emailVerified
+                    ? "Tu correo ya está confirmado."
+                    : "Confirmá tu correo para reforzar la seguridad de la cuenta."}
+                </p>
+
+                {!session.emailVerified && (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={emailActionLoading}
+                      className="h-11 rounded-[14px] bg-green px-4 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
+                    >
+                      {emailActionLoading ? "Enviando..." : "Reenviar correo"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRefreshVerification}
+                      disabled={emailActionLoading}
+                      className="h-11 rounded-[14px] border border-border bg-surface px-4 text-sm font-semibold text-ink-soft transition-opacity disabled:opacity-60"
+                    >
+                      Ya confirmé
+                    </button>
+                  </div>
+                )}
+
+                {msgEmail && (
+                  <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${msgEmail.ok ? "bg-green-soft text-green-deep" : "bg-red-wash text-red-deep"}`}>
+                    {msgEmail.text}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Datos personales */}
         <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
@@ -153,9 +244,13 @@ export default function PerfilPage() {
                   placeholder="Nueva contraseña"
                   value={claveNueva}
                   onChange={(e) => { setClaveNueva(e.target.value); setMsgClave(null); }}
+                  minLength={8}
                   className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
                 />
               </div>
+              <p className="px-1 text-[11px] text-ink-mute">
+                Usá al menos 8 caracteres, una mayúscula, una minúscula y un número.
+              </p>
 
               <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
                 <Icon name="lock" size={18} color="#9AA09C" />
@@ -183,6 +278,48 @@ export default function PerfilPage() {
             </form>
           </section>
         )}
+
+        <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
+                Notificaciones
+              </h2>
+              <p className="mt-1 text-sm text-ink-soft">{notificationCopy}</p>
+            </div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${settings.enabled ? "bg-green-soft" : "bg-surface-alt"}`}>
+              <Icon
+                name="bell"
+                size={19}
+                color={settings.enabled ? "#1F6B43" : "#9AA09C"}
+              />
+            </div>
+          </div>
+
+          {settings.status === "denied" || settings.status === "unsupported" || settings.status === "missing-config" ? (
+            <div className="rounded-xl border border-border-soft bg-surface-alt px-4 py-3 text-sm font-medium text-ink-soft">
+              {notificationCopy}
+            </div>
+          ) : settings.enabled ? (
+            <button
+              type="button"
+              onClick={disable}
+              disabled={savingNotifications || loadingNotifications}
+              className="h-[52px] w-full rounded-[16px] border border-border bg-bg text-[15px] font-semibold text-ink-soft transition-colors hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingNotifications ? "Guardando..." : "Pausar notificaciones"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={enable}
+              disabled={savingNotifications || loadingNotifications}
+              className="h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingNotifications || loadingNotifications ? "Configurando..." : "Activar notificaciones"}
+            </button>
+          )}
+        </section>
 
         {/* Cerrar sesión */}
         <button

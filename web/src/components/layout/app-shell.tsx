@@ -17,7 +17,7 @@ export function AppShell({ children, active }: AppShellProps) {
       <SideNav active={active} />
 
       <div className="flex min-h-full flex-1 flex-col">
-        <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col lg:mx-auto lg:max-w-6xl lg:px-8 lg:py-8 xl:max-w-7xl">
+        <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:mx-auto lg:max-w-6xl lg:px-8 lg:py-8 lg:pb-8 xl:max-w-7xl">
           {children}
           <TabBar active={active} />
         </div>

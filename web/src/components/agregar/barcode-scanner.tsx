@@ -52,12 +52,15 @@ function inferCategory(tags: string[]): CategoryKey {
 export function BarcodeScanner({ onDetected, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onDetectedRef = useRef(onDetected);
-  onDetectedRef.current = onDetected;
 
   const [status, setStatus] = useState<ScanStatus>("scanning");
   const [errorMsg, setErrorMsg] = useState("");
   const [lastBarcode, setLastBarcode] = useState("");
   const detectedRef = useRef(false);
+
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
 
   useEffect(() => {
     let cancelled = false;

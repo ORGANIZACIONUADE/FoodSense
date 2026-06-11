@@ -81,6 +81,12 @@ export const ICON_PATHS: Record<string, ReactNode> = {
       <path d="M4 11h16M9 7.5v1.5M9 14v1.5" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M2 9a2 2 0 0 1 2-2h1.5l2-3h5l2 3H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9Z" />
+      <circle cx="12" cy="13" r="3" />
+    </>
+  ),
   check: <path d="M5 12l5 5L19 7" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   minus: <path d="M5 12h14" />,
@@ -99,6 +105,7 @@ export const ICON_PATHS: Record<string, ReactNode> = {
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </>
   ),
+  arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
   barcode: (
     <>
       <path d="M3 9V5.5A2.5 2.5 0 0 1 5.5 3H9M15 3h3.5A2.5 2.5 0 0 1 21 5.5V9M21 15v3.5A2.5 2.5 0 0 1 18.5 21H15M9 21H5.5A2.5 2.5 0 0 1 3 18.5V15" />

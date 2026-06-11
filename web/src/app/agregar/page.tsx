@@ -8,7 +8,7 @@ export default function AgregarPage() {
   if (!session) return null;
 
   return (
-    <div className="flex min-h-full flex-col bg-bg">
+    <div className="flex h-dvh flex-col bg-bg">
       <AddProductForm />
     </div>
   );

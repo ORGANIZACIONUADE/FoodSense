@@ -53,10 +53,14 @@ export function useInventory() {
   const [wastedThisMonth, setWastedThisMonth] = useState(0);
 
   useEffect(() => {
-    setProducts(load());
-    setConsumedThisMonth(countThisMonth(loadConsumedEntries()));
-    setWastedThisMonth(countThisMonth(loadWastedEntries()));
-    setIsLoaded(true);
+    const timeout = window.setTimeout(() => {
+      setProducts(load());
+      setConsumedThisMonth(countThisMonth(loadConsumedEntries()));
+      setWastedThisMonth(countThisMonth(loadWastedEntries()));
+      setIsLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
