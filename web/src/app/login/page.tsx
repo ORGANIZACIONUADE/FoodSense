@@ -7,14 +7,16 @@ import { useAuth } from "@/context/auth-context";
 import { Icon } from "@/components/icons/icon";
 
 export default function LoginPage() {
-  const { session, loading, login, loginGoogle } = useAuth();
+  const { session, loading, login, loginGoogle, recoverPassword } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [clave, setClave] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [recoverLoading, setRecoverLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && session) router.replace("/");
@@ -23,6 +25,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setMessage("");
     setSubmitting(true);
     const result = await login(email, clave);
     if (!result.ok) {
@@ -35,6 +38,7 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setError("");
+    setMessage("");
     setGoogleLoading(true);
     const result = await loginGoogle();
     if (!result.ok) {
@@ -43,6 +47,19 @@ export default function LoginPage() {
       return;
     }
     router.replace("/");
+  }
+
+  async function handleRecoverPassword() {
+    setError("");
+    setMessage("");
+    setRecoverLoading(true);
+    const result = await recoverPassword(email);
+    setRecoverLoading(false);
+    if (!result.ok) {
+      setError(result.error ?? "No se pudo enviar el correo.");
+      return;
+    }
+    setMessage("Te enviamos un correo para restablecer tu contraseña.");
   }
 
   if (loading || session) return null;
@@ -90,18 +107,33 @@ export default function LoginPage() {
             />
           </div>
 
+          <button
+            type="button"
+            onClick={handleRecoverPassword}
+            disabled={submitting || googleLoading || recoverLoading}
+            className="self-end px-1 text-[13px] font-semibold text-green transition-opacity disabled:opacity-60"
+          >
+            {recoverLoading ? "Enviando..." : "Olvidé mi contraseña"}
+          </button>
+
           {error && (
             <p className="rounded-lg bg-red-wash px-3 py-2 text-sm text-red-deep">
               {error}
             </p>
           )}
 
+          {message && (
+            <p className="rounded-lg bg-green-wash px-3 py-2 text-sm text-green-deep">
+              {message}
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={submitting || googleLoading}
+            disabled={submitting || googleLoading || recoverLoading}
             className="mt-1 h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity disabled:opacity-60"
           >
-            Ingresar
+            {submitting ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
 
@@ -114,7 +146,7 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogle}
-          disabled={submitting || googleLoading}
+          disabled={submitting || googleLoading || recoverLoading}
           className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[16px] border border-border bg-surface text-[15px] font-semibold text-ink shadow-sm transition-opacity disabled:opacity-60"
         >
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">

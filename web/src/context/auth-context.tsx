@@ -8,6 +8,7 @@ import {
   logoutUser,
   loginWithGoogle,
   refreshCurrentUser,
+  resetPassword,
   sendVerificationEmail,
   subscribeToAuth,
   type Session,
@@ -22,6 +23,7 @@ interface AuthContextValue {
   update(changes: { nombre?: string; clave?: string; claveActual?: string }): Promise<{ ok: boolean; error?: string }>;
   resendVerification(): Promise<{ ok: boolean; error?: string }>;
   refreshSession(): Promise<{ ok: boolean; error?: string }>;
+  recoverPassword(email: string): Promise<{ ok: boolean; error?: string }>;
   logout(): Promise<void>;
 }
 
@@ -83,13 +85,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }
 
+  async function recoverPassword(email: string) {
+    const result = await resetPassword(email);
+    if (!result.ok) return { ok: false, error: result.error };
+    return { ok: true };
+  }
+
   async function logout() {
     await logoutUser();
     setSession(null);
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, login, loginGoogle, register, update, resendVerification, refreshSession, logout }}>
+    <AuthContext.Provider value={{ session, loading, login, loginGoogle, register, update, resendVerification, refreshSession, recoverPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

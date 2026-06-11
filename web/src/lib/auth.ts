@@ -10,6 +10,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
+  sendPasswordResetEmail,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -49,6 +50,9 @@ function mapAuthError(code: string | undefined, fallback: string): string {
       return "Email o contraseña incorrectos.";
     case "auth/email-already-in-use":
       return "Ya existe una cuenta con ese email.";
+    case "auth/missing-email":
+    case "auth/invalid-email":
+      return "Ingresá un email válido.";
     case "auth/weak-password":
       return "La contraseña no cumple los requisitos de seguridad.";
     case "auth/too-many-requests":
@@ -164,6 +168,16 @@ export async function refreshCurrentUser(): Promise<{ ok: true; user: Session } 
     return { ok: true, user: toSession(user) };
   } catch {
     return { ok: false, error: "No se pudo actualizar el estado de la cuenta." };
+  }
+}
+
+export async function resetPassword(email: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!email.trim()) return { ok: false, error: "Ingresá tu email para recuperar la contraseña." };
+  try {
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+    return { ok: true };
+  } catch (e: unknown) {
+    return { ok: false, error: mapAuthError((e as { code?: string }).code, "No se pudo enviar el correo. Intentá de nuevo.") };
   }
 }
 
