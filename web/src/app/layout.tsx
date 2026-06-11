@@ -23,9 +23,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/foodsense-icon.svg", type: "image/svg+xml" },
+      { url: "/foodsense-icon.jpg", type: "image/jpeg", sizes: "640x640" },
     ],
-    apple: "/foodsense-icon.svg",
+    apple: "/foodsense-icon.jpg",
   },
 };
 

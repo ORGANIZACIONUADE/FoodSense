@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" role="img" aria-label="FoodSense">
-  <rect width="720" height="720" fill="none"/>
-  <image href="/foodsense-icon.svg" x="78" y="18" width="564" height="564"/>
-  <text x="360" y="638" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="86" font-weight="800">
-    <tspan fill="#3fa047">Food</tspan><tspan fill="#74319a">Sense</tspan>
-  </text>
-  <ellipse cx="360" cy="674" rx="154" ry="12" fill="#8d7da4" opacity=".22"/>
-</svg>

@@ -68,7 +68,7 @@ export function useExpiryNotifications(products: Product[], session: Session | n
       new Notification(title, {
         body,
         tag: `foodsense-expiry-${urgent.id}`,
-        icon: "/foodsense-icon.svg",
+        icon: "/foodsense-icon.jpg",
       });
     } catch {}
   }, [products, session]);

@@ -6,8 +6,8 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ variant = "icon", className }: BrandLogoProps) {
-  const src = variant === "full" ? "/foodsense-logo.svg" : "/foodsense-icon.svg";
-  const size = variant === "full" ? 720 : 512;
+  const src = variant === "full" ? "/foodsense-logo.jpg" : "/foodsense-icon.jpg";
+  const size = 640;
 
   return (
     <Image
