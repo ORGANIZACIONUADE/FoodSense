@@ -16,10 +16,12 @@ import { auth } from "./firebase";
 export interface Session {
   email: string;
   nombre: string;
+  provider: "google" | "password";
 }
 
 function toSession(user: FirebaseUser): Session {
-  return { email: user.email!, nombre: user.displayName ?? user.email! };
+  const provider = user.providerData.some((p) => p.providerId === "google.com") ? "google" : "password";
+  return { email: user.email!, nombre: user.displayName ?? user.email!, provider };
 }
 
 function mapAuthError(code: string | undefined, fallback: string): string {
