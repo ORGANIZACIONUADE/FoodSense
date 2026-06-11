@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { Icon } from "@/components/icons/icon";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { validatePasswordStrength } from "@/lib/auth";
 
 export default function RegisterPage() {
@@ -53,11 +54,8 @@ export default function RegisterPage() {
     <div className="flex min-h-svh flex-col items-center justify-center bg-bg px-5 py-12">
       <div className="w-full max-w-[390px]">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-wash text-green">
-            <Icon name="pantry" size={26} color="#2F8F5C" />
-          </div>
+          <BrandLogo variant="full" className="h-32 w-32 object-contain" />
           <div className="text-center">
-            <p className="text-2xl font-bold tracking-tight">FoodSense</p>
             <p className="mt-0.5 text-sm text-ink-soft">Creá tu cuenta</p>
           </div>
         </div>
