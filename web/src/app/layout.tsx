@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/auth-context";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
   title: "FoodSense — Despensa",
   description:
     "Gestioná tu inventario de alimentos y priorizá lo que vence antes.",
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
@@ -34,7 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${jakarta.variable} ${jetbrains.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

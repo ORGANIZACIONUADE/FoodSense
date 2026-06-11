@@ -1,20 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
+import { useAuth } from "@/context/auth-context";
 
 const NAV_ITEMS = [
-  { id: "home",    label: "Inicio",   icon: "home",  href: null },
+  { id: "home",    label: "Inicio",   icon: "home",  href: "/" },
   { id: "pantry",  label: "Despensa", icon: "list",  href: "/despensa" },
-  { id: "alerts",  label: "Alertas",  icon: "bell",  href: null },
-  { id: "profile", label: "Perfil",   icon: "user",  href: null },
+  { id: "alerts",  label: "Alertas",  icon: "bell",  href: "/alertas" },
 ] as const;
 
-export type NavId = (typeof NAV_ITEMS)[number]["id"];
+export type NavId = "home" | "pantry" | "alerts" | "profile";
 
 type SideNavProps = {
   active: NavId;
 };
 
 export function SideNav({ active }: SideNavProps) {
+  const { session, logout } = useAuth();
+  const router = useRouter();
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
+
   return (
     <aside
       className="hidden w-[240px] shrink-0 flex-col border-r border-border bg-surface lg:flex"
@@ -49,7 +60,7 @@ export function SideNav({ active }: SideNavProps) {
               {item.label}
             </>
           );
-          return item.href ? (
+          return (
             <Link
               key={item.id}
               href={item.href}
@@ -58,21 +69,35 @@ export function SideNav({ active }: SideNavProps) {
             >
               {inner}
             </Link>
-          ) : (
-            <span
-              key={item.id}
-              className={className}
-              aria-current={isActive ? "page" : undefined}
-            >
-              {inner}
-            </span>
           );
         })}
       </nav>
 
-      <p className="px-6 py-4 text-[11px] leading-relaxed text-ink-mute">
-        Sprint 1 · Panel de inventario
-      </p>
+      {session && (
+        <div className="border-t border-border-soft px-4 py-4">
+          <Link href="/perfil" className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-surface-alt">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-soft text-sm font-bold text-green-deep">
+              {session.nombre[0].toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-ink">
+                {session.nombre}
+              </p>
+              <p className="truncate text-[11px] text-ink-mute">{session.email}</p>
+            </div>
+            <span className="rotate-180">
+              <Icon name="chevronLeft" size={16} color="#9AA09C" strokeWidth={2} />
+            </span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium text-red transition-colors hover:bg-red-wash"
+          >
+            <Icon name="x" size={14} color="#D85B4A" />
+            Cerrar sesión
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

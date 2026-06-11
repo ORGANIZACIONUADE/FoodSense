@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { CategoryFilters } from "@/components/despensa/category-filters";
 import { InventoryLegend } from "@/components/despensa/inventory-legend";
@@ -10,19 +11,28 @@ import { Icon } from "@/components/icons/icon";
 import { ProductRow } from "@/components/product/product-row";
 import { Card } from "@/components/ui/card";
 import { countUrgent } from "@/lib/inventory";
+import { useExpiryNotifications } from "@/lib/use-expiry-notifications";
 import { useInventory } from "@/lib/use-inventory";
 import { DeleteProductDialog } from "@/components/despensa/delete-product-dialog";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import type { CategoryKey, Product } from "@/lib/types";
 
 export default function DespensaPage() {
+  const session = useRequireAuth();
+  const router = useRouter();
   const { products, consume, remove } = useInventory();
+  const expiryNotice = useExpiryNotifications(products, session);
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const displayed =
-    selectedCategory === "todos"
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+  if (!session) return null;
+
+  const displayed = products.filter((p) => {
+    const matchesCategory = selectedCategory === "todos" || p.category === selectedCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const urgentCount = countUrgent(displayed);
 
@@ -40,7 +50,7 @@ export default function DespensaPage() {
           </div>
           <Link
             href="/agregar"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green text-white shadow-md lg:h-12 lg:w-auto lg:gap-2 lg:rounded-full lg:px-5"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green text-white shadow-md lg:flex lg:h-12 lg:w-auto lg:gap-2 lg:rounded-full lg:px-5"
             aria-label="Agregar producto"
           >
             <Icon name="plus" size={22} color="#fff" strokeWidth={2.25} />
@@ -49,12 +59,18 @@ export default function DespensaPage() {
         </div>
 
         <div
-          className="flex h-11 items-center gap-2.5 rounded-md border border-border bg-surface px-3.5 text-ink-mute lg:h-12 lg:max-w-xl"
+          className="flex h-11 items-center gap-2.5 rounded-md border border-border bg-surface px-3.5 text-ink-mute lg:h-12 lg:max-w-xl focus-within:border-green focus-within:ring-1 focus-within:ring-green transition-shadow"
           role="search"
-          aria-label="Buscar en la despensa (próximamente)"
         >
           <Icon name="search" size={18} color="#9AA09C" />
-          <span className="text-sm">Buscar en la despensa…</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar en la despensa…"
+            className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-mute outline-none"
+            aria-label="Buscar en la despensa"
+          />
         </div>
 
         <CategoryFilters
@@ -135,6 +151,7 @@ export default function DespensaPage() {
                       variant="responsive"
                       onConsume={() => consume(product.id)}
                       onDelete={() => setProductToDelete(product)}
+                      onEdit={() => router.push(`/editar/${product.id}`)}
                     />
                   </li>
                 ))}
@@ -145,6 +162,32 @@ export default function DespensaPage() {
           </main>
         </div>
       </div>
+
+      {expiryNotice.message && (
+        <div className="fixed inset-x-4 bottom-[calc(9rem+env(safe-area-inset-bottom))] z-40 mx-auto max-w-[398px] rounded-xl border border-amber-soft bg-amber-wash px-4 py-3 text-sm font-medium text-amber-deep shadow-md lg:left-auto lg:right-8 lg:bottom-8 lg:max-w-sm">
+          <div className="flex items-start gap-2.5">
+            <Icon name="bell" size={18} color="#B8772D" />
+            <p className="flex-1">{expiryNotice.message}</p>
+            <button
+              type="button"
+              onClick={expiryNotice.dismiss}
+              className="rounded-md p-1 text-amber-deep transition-colors hover:bg-amber-soft"
+              aria-label="Cerrar aviso"
+            >
+              <Icon name="x" size={14} color="#B8772D" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Link
+        href="/agregar"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-green text-white shadow-md transition-transform active:scale-95 lg:hidden"
+        aria-label="Agregar producto"
+      >
+        <Icon name="plus" size={26} color="#fff" strokeWidth={2.4} />
+      </Link>
+
       <DeleteProductDialog
         product={productToDelete}
         onConfirm={() => {

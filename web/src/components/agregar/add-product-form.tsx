@@ -12,110 +12,18 @@ import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
 
-const STATE_OPTIONS: { id: ProductState; label: string; icon: string }[] = [
-  { id: "cerrado", label: "Cerrado", icon: "closed" },
-  { id: "abierto", label: "Abierto", icon: "open" },
-  { id: "congelado", label: "Congelado", icon: "snow" },
-];
-
-const STATE_LABELS: Record<ProductState, string> = {
-  cerrado: "Cerrado",
-  abierto: "Abierto",
-  congelado: "Congelado",
-};
-
-const QUICK_PRESETS = [
-  { label: "Hoy", days: 0 },
-  { label: "3 días", days: 3 },
-  { label: "1 semana", days: 7 },
-  { label: "2 semanas", days: 14 },
-  { label: "1 mes", days: 30 },
-];
-
-const DEFAULT_EXPIRY_BY_CATEGORY_AND_STATE: Record<
-  CategoryKey,
-  Record<ProductState, number>
-> = {
-  lacteos: { cerrado: 7, abierto: 7, congelado: 30 },
-  carnes: { cerrado: 3, abierto: 3, congelado: 30 },
-  verduras: { cerrado: 7, abierto: 3, congelado: 30 },
-  frutas: { cerrado: 7, abierto: 3, congelado: 30 },
-  panificados: { cerrado: 7, abierto: 3, congelado: 30 },
-  bebidas: { cerrado: 30, abierto: 7, congelado: 30 },
-  huevos: { cerrado: 14, abierto: 7, congelado: 30 },
-  conservas: { cerrado: 30, abierto: 14, congelado: 30 },
-};
-
-const DEFAULT_STATE_BY_CATEGORY: Record<CategoryKey, ProductState> = {
-  lacteos: "abierto",
-  carnes: "congelado",
-  verduras: "cerrado",
-  frutas: "cerrado",
-  panificados: "cerrado",
-  bebidas: "cerrado",
-  huevos: "cerrado",
-  conservas: "cerrado",
-};
-
-function addDaysToToday(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function dateToDays(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const expiry = new Date(dateStr + "T00:00:00");
-  return Math.round((expiry.getTime() - today.getTime()) / 86_400_000);
-}
-
-function formatDateLabel(dateStr: string): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
-
-function getSuggestedExpiryDays(
-  category: CategoryKey,
-  currentState: ProductState,
-): number {
-  return DEFAULT_EXPIRY_BY_CATEGORY_AND_STATE[category][currentState];
-}
-
-function getSuggestedState(category: CategoryKey): ProductState {
-  return DEFAULT_STATE_BY_CATEGORY[category];
-}
-
-function formatExpiryHint(days: number): string {
-  if (days === 0) return "Sugerencia: hoy";
-  if (days === 3) return "Sugerencia: 3 días";
-  if (days === 7) return "Sugerencia: 1 semana";
-  if (days === 14) return "Sugerencia: 2 semanas";
-  if (days === 30) return "Sugerencia: 1 mes";
-  return `Sugerencia: ${days} días`;
-}
-
-function formatStateHint(state: ProductState): string {
-  return `Sugerencia: ${STATE_LABELS[state]}`;
-}
-
-function inferCategoryFromName(name: string): CategoryKey | null {
-  const s = name.toLowerCase();
-  if (/leche|queso|yogur|manteca|crema|lacteo/.test(s)) return "lacteos";
-  if (/carne|pollo|cerdo|pescado|hamburguesa|salchicha/.test(s)) return "carnes";
-  if (/lechuga|tomate|cebolla|papa|zanahoria|verdura|zapallo/.test(s)) return "verduras";
-  if (/manzana|banana|naranja|pera|uva|fruta/.test(s)) return "frutas";
-  if (/pan|galletita|factura|torta|budin|harina/.test(s)) return "panificados";
-  if (/agua|jugo|gaseosa|coca|sprite|cerveza|vino|bebida/.test(s)) return "bebidas";
-  if (/huevo/.test(s)) return "huevos";
-  if (/lata|arroz|fideo|salsa|arveja|choclo|lenteja|conserva/.test(s)) return "conservas";
-  return null;
-}
+import {
+  STATE_OPTIONS,
+  QUICK_PRESETS,
+  addDaysToToday,
+  dateToDays,
+  formatDateLabel,
+  getSuggestedExpiryDays,
+  getSuggestedState,
+  formatExpiryHint,
+  formatStateHint,
+  inferCategoryFromName,
+} from "@/lib/product-form-utils";
 
 type SessionItem = {
   id: string;
@@ -224,8 +132,13 @@ export function AddProductForm() {
     setCategory(item.category);
     setState(item.state);
     setExpiryDate(item.expiryDate);
-    setExpiryWasCustomized(true);
-    setStateWasCustomized(true);
+    
+    const defaultDays = getSuggestedExpiryDays(item.category, item.state);
+    setExpiryWasCustomized(item.daysUntilExpiry !== defaultDays);
+    
+    const defaultState = getSuggestedState(item.category);
+    setStateWasCustomized(item.state !== defaultState);
+    
     setHasManuallyChangedCategory(true);
     setNameError(false);
     setSessionExpanded(false);
