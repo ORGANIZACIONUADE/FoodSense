@@ -10,7 +10,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 
 export default function PerfilPage() {
   const session = useRequireAuth();
-  const { update, logout } = useAuth();
+  const { update, logout, resendVerification, refreshSession } = useAuth();
   const { settings, loading: loadingNotifications, saving: savingNotifications, enable, disable } =
     useNotificationSettings(session);
   const router = useRouter();
@@ -22,6 +22,8 @@ export default function PerfilPage() {
 
   const [msgDatos, setMsgDatos] = useState<{ ok: boolean; text: string } | null>(null);
   const [msgClave, setMsgClave] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msgEmail, setMsgEmail] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailActionLoading, setEmailActionLoading] = useState(false);
 
   if (!session) return null;
 
@@ -51,6 +53,30 @@ export default function PerfilPage() {
       setClaveNueva("");
       setClaveConfirm("");
     }
+  }
+
+  async function handleResendVerification() {
+    setMsgEmail(null);
+    setEmailActionLoading(true);
+    const result = await resendVerification();
+    setEmailActionLoading(false);
+    setMsgEmail(
+      result.ok
+        ? { ok: true, text: "Te enviamos un correo de confirmación." }
+        : { ok: false, text: result.error ?? "No se pudo enviar el correo." },
+    );
+  }
+
+  async function handleRefreshVerification() {
+    setMsgEmail(null);
+    setEmailActionLoading(true);
+    const result = await refreshSession();
+    setEmailActionLoading(false);
+    setMsgEmail(
+      result.ok
+        ? { ok: true, text: "Estado de la cuenta actualizado." }
+        : { ok: false, text: result.error ?? "No se pudo actualizar el estado." },
+    );
   }
 
   async function handleLogout() {
@@ -90,6 +116,58 @@ export default function PerfilPage() {
             <p className="text-sm text-ink-mute">{session.email}</p>
           </div>
         </div>
+
+        {session.provider === "password" && (
+          <section className={`mb-5 rounded-2xl border p-5 shadow-sm ${session.emailVerified ? "border-green-soft bg-green-wash" : "border-amber-soft bg-amber-wash"}`}>
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${session.emailVerified ? "bg-green-soft" : "bg-amber-soft"}`}>
+                <Icon
+                  name={session.emailVerified ? "check" : "bell"}
+                  size={19}
+                  color={session.emailVerified ? "#1F6B43" : "#B8772D"}
+                  strokeWidth={2.2}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
+                  Confirmación de email
+                </h2>
+                <p className="mt-1 text-sm text-ink-soft">
+                  {session.emailVerified
+                    ? "Tu correo ya está confirmado."
+                    : "Confirmá tu correo para reforzar la seguridad de la cuenta."}
+                </p>
+
+                {!session.emailVerified && (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={emailActionLoading}
+                      className="h-11 rounded-[14px] bg-green px-4 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
+                    >
+                      {emailActionLoading ? "Enviando..." : "Reenviar correo"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRefreshVerification}
+                      disabled={emailActionLoading}
+                      className="h-11 rounded-[14px] border border-border bg-surface px-4 text-sm font-semibold text-ink-soft transition-opacity disabled:opacity-60"
+                    >
+                      Ya confirmé
+                    </button>
+                  </div>
+                )}
+
+                {msgEmail && (
+                  <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${msgEmail.ok ? "bg-green-soft text-green-deep" : "bg-red-wash text-red-deep"}`}>
+                    {msgEmail.text}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Datos personales */}
         <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
@@ -166,9 +244,13 @@ export default function PerfilPage() {
                   placeholder="Nueva contraseña"
                   value={claveNueva}
                   onChange={(e) => { setClaveNueva(e.target.value); setMsgClave(null); }}
+                  minLength={8}
                   className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
                 />
               </div>
+              <p className="px-1 text-[11px] text-ink-mute">
+                Usá al menos 8 caracteres, una mayúscula, una minúscula y un número.
+              </p>
 
               <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
                 <Icon name="lock" size={18} color="#9AA09C" />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { Icon } from "@/components/icons/icon";
+import { validatePasswordStrength } from "@/lib/auth";
 
 export default function RegisterPage() {
   const { session, loading, register, loginGoogle } = useAuth();
@@ -99,10 +100,14 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={clave}
               onChange={(e) => setClave(e.target.value)}
+              minLength={8}
               required
               className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
             />
           </div>
+          <p className={`px-1 text-[11px] ${clave && validatePasswordStrength(clave) ? "text-amber-deep" : "text-ink-mute"}`}>
+            Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+          </p>
 
           {error && (
             <p className="rounded-lg bg-red-wash px-3 py-2 text-sm text-red-deep">
@@ -115,7 +120,7 @@ export default function RegisterPage() {
             disabled={submitting || googleLoading}
             className="mt-1 h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity disabled:opacity-60"
           >
-            Crear cuenta
+            {submitting ? "Creando cuenta..." : "Crear cuenta"}
           </button>
         </form>
 
