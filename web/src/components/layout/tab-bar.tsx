@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import type { NavId } from "./side-nav";
 
 const TABS: { id: NavId; label: string; icon: string; href: string | null }[] = [
-  { id: "home",    label: "Inicio",   icon: "home", href: null },
+  { id: "home",    label: "Inicio",   icon: "home", href: "/" },
   { id: "pantry",  label: "Despensa", icon: "list", href: "/despensa" },
   { id: "alerts",  label: "Alertas",  icon: "bell", href: null },
   { id: "profile", label: "Perfil",   icon: "user", href: "/perfil" },

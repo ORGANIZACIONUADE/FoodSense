@@ -6,7 +6,7 @@ import { Icon } from "@/components/icons/icon";
 import { useAuth } from "@/context/auth-context";
 
 const NAV_ITEMS = [
-  { id: "home",    label: "Inicio",   icon: "home",  href: null },
+  { id: "home",    label: "Inicio",   icon: "home",  href: "/" },
   { id: "pantry",  label: "Despensa", icon: "list",  href: "/despensa" },
   { id: "alerts",  label: "Alertas",  icon: "bell",  href: null },
 ] as const;

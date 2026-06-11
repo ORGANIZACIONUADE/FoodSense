@@ -66,7 +66,7 @@ export async function registerUser(
   try {
     const { user } = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), clave);
     await updateProfile(user, { displayName: nombre.trim() });
-    return { ok: true, user: { email: user.email!, nombre: nombre.trim() } };
+    return { ok: true, user: { email: user.email!, nombre: nombre.trim(), provider: "password" } };
   } catch (e: unknown) {
     return { ok: false, error: mapAuthError((e as { code?: string }).code, "Error al registrarse. Intentá de nuevo.") };
   }
