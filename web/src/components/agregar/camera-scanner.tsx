@@ -16,8 +16,8 @@ export function CameraScanner({ onClose }: CameraScannerProps) {
 
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setState("unsupported");
-      return;
+      const timeout = window.setTimeout(() => setState("unsupported"), 0);
+      return () => window.clearTimeout(timeout);
     }
 
     navigator.mediaDevices
