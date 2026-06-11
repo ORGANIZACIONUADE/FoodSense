@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons/icon";
 import { useAuth } from "@/context/auth-context";
+import { BrandLogo } from "./brand-logo";
 
 const NAV_ITEMS = [
   { id: "home",    label: "Inicio",   icon: "home",  href: "/" },
@@ -33,9 +34,7 @@ export function SideNav({ active }: SideNavProps) {
     >
       <div className="border-b border-border-soft px-6 py-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-wash text-green">
-            <Icon name="pantry" size={20} color="#2F8F5C" />
-          </div>
+          <BrandLogo variant="icon" className="h-10 w-10 rounded-xl object-contain shadow-sm" />
           <div>
             <p className="text-base font-bold tracking-tight">FoodSense</p>
             <p className="text-[11px] text-ink-mute">Tu despensa inteligente</p>

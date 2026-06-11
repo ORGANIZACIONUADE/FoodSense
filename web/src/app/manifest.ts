@@ -12,6 +12,18 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#fafaf7",
     icons: [
       {
+        src: "/foodsense-icon.png",
+        sizes: "464x445",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/foodsense-icon.png",
+        sizes: "464x445",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
         src: "/favicon.ico",
         sizes: "any",
         type: "image/x-icon",
