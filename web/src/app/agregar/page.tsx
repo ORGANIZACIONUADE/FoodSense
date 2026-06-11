@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
-import { AddProductForm } from "@/components/agregar/add-product-form";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Agregar producto — FoodSense",
-};
+import { AddProductForm } from "@/components/agregar/add-product-form";
+import { useRequireAuth } from "@/lib/use-require-auth";
 
 export default function AgregarPage() {
+  const session = useRequireAuth();
+  if (!session) return null;
+
   return (
     <div className="flex min-h-full flex-col bg-bg">
       <AddProductForm />

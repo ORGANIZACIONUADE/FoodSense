@@ -13,14 +13,18 @@ import { Card } from "@/components/ui/card";
 import { countUrgent } from "@/lib/inventory";
 import { useInventory } from "@/lib/use-inventory";
 import { DeleteProductDialog } from "@/components/despensa/delete-product-dialog";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import type { CategoryKey, Product } from "@/lib/types";
 
 export default function DespensaPage() {
+  const session = useRequireAuth();
   const router = useRouter();
   const { products, consume, remove } = useInventory();
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | "todos">("todos");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  if (!session) return null;
 
   const displayed = products.filter((p) => {
     const matchesCategory = selectedCategory === "todos" || p.category === selectedCategory;
