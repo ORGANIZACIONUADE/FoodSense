@@ -128,59 +128,61 @@ export default function PerfilPage() {
           </form>
         </section>
 
-        {/* Cambiar contraseña */}
-        <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
-            Cambiar contraseña
-          </h2>
-          <form onSubmit={handleClave} className="flex flex-col gap-3">
-            <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
-              <Icon name="lock" size={18} color="#9AA09C" />
-              <input
-                type="password"
-                placeholder="Contraseña actual"
-                value={claveActual}
-                onChange={(e) => { setClaveActual(e.target.value); setMsgClave(null); }}
-                className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
-              />
-            </div>
-
-            <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
-              <Icon name="lock" size={18} color="#9AA09C" />
-              <input
-                type="password"
-                placeholder="Nueva contraseña"
-                value={claveNueva}
-                onChange={(e) => { setClaveNueva(e.target.value); setMsgClave(null); }}
-                className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
-              />
-            </div>
-
-            <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
-              <Icon name="lock" size={18} color="#9AA09C" />
-              <input
-                type="password"
-                placeholder="Confirmá la nueva contraseña"
-                value={claveConfirm}
-                onChange={(e) => { setClaveConfirm(e.target.value); setMsgClave(null); }}
-                className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
-              />
-            </div>
-
-            {msgClave && (
-              <p className={`rounded-lg px-3 py-2 text-sm ${msgClave.ok ? "bg-green-wash text-green-deep" : "bg-red-wash text-red-deep"}`}>
-                {msgClave.text}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity"
-            >
+        {/* Cambiar contraseña — solo para cuentas con email/contraseña */}
+        {session.provider === "password" && (
+          <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+            <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
               Cambiar contraseña
-            </button>
-          </form>
-        </section>
+            </h2>
+            <form onSubmit={handleClave} className="flex flex-col gap-3">
+              <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
+                <Icon name="lock" size={18} color="#9AA09C" />
+                <input
+                  type="password"
+                  placeholder="Contraseña actual"
+                  value={claveActual}
+                  onChange={(e) => { setClaveActual(e.target.value); setMsgClave(null); }}
+                  className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
+                />
+              </div>
+
+              <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
+                <Icon name="lock" size={18} color="#9AA09C" />
+                <input
+                  type="password"
+                  placeholder="Nueva contraseña"
+                  value={claveNueva}
+                  onChange={(e) => { setClaveNueva(e.target.value); setMsgClave(null); }}
+                  className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
+                />
+              </div>
+
+              <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-bg px-4">
+                <Icon name="lock" size={18} color="#9AA09C" />
+                <input
+                  type="password"
+                  placeholder="Confirmá la nueva contraseña"
+                  value={claveConfirm}
+                  onChange={(e) => { setClaveConfirm(e.target.value); setMsgClave(null); }}
+                  className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
+                />
+              </div>
+
+              {msgClave && (
+                <p className={`rounded-lg px-3 py-2 text-sm ${msgClave.ok ? "bg-green-wash text-green-deep" : "bg-red-wash text-red-deep"}`}>
+                  {msgClave.text}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity"
+              >
+                Cambiar contraseña
+              </button>
+            </form>
+          </section>
+        )}
 
         {/* Cerrar sesión */}
         <button
