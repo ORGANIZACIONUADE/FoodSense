@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context";
 const NAV_ITEMS = [
   { id: "home",    label: "Inicio",   icon: "home",  href: "/" },
   { id: "pantry",  label: "Despensa", icon: "list",  href: "/despensa" },
-  { id: "alerts",  label: "Alertas",  icon: "bell",  href: null },
+  { id: "alerts",  label: "Alertas",  icon: "bell",  href: "/alertas" },
 ] as const;
 
 export type NavId = "home" | "pantry" | "alerts" | "profile";
@@ -60,7 +60,7 @@ export function SideNav({ active }: SideNavProps) {
               {item.label}
             </>
           );
-          return item.href ? (
+          return (
             <Link
               key={item.id}
               href={item.href}
@@ -69,14 +69,6 @@ export function SideNav({ active }: SideNavProps) {
             >
               {inner}
             </Link>
-          ) : (
-            <span
-              key={item.id}
-              className={className}
-              aria-current={isActive ? "page" : undefined}
-            >
-              {inner}
-            </span>
           );
         })}
       </nav>

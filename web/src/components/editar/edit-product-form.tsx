@@ -39,21 +39,25 @@ export function EditProductForm() {
 
   useEffect(() => {
     if (!initialized && isLoaded && productId) {
-      const product = products.find((p) => p.id === productId);
-      if (product) {
-        setName(product.name);
-        setCategory(product.category);
-        setState(product.state);
-        setExpiryDate(addDaysToToday(product.daysUntilExpiry));
-        const defaultDays = getSuggestedExpiryDays(product.category, product.state);
-        setExpiryWasCustomized(product.daysUntilExpiry !== defaultDays);
-        
-        const defaultState = getSuggestedState(product.category);
-        setStateWasCustomized(product.state !== defaultState);
-        
-        setHasManuallyChangedCategory(true);
-      }
-      setInitialized(true);
+      const timeout = window.setTimeout(() => {
+        const product = products.find((p) => p.id === productId);
+        if (product) {
+          setName(product.name);
+          setCategory(product.category);
+          setState(product.state);
+          setExpiryDate(addDaysToToday(product.daysUntilExpiry));
+          const defaultDays = getSuggestedExpiryDays(product.category, product.state);
+          setExpiryWasCustomized(product.daysUntilExpiry !== defaultDays);
+
+          const defaultState = getSuggestedState(product.category);
+          setStateWasCustomized(product.state !== defaultState);
+
+          setHasManuallyChangedCategory(true);
+        }
+        setInitialized(true);
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
     }
   }, [products, productId, initialized, isLoaded]);
 

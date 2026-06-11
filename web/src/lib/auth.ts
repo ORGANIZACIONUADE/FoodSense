@@ -14,6 +14,7 @@ import {
 import { auth } from "./firebase";
 
 export interface Session {
+  uid: string;
   email: string;
   nombre: string;
   provider: "google" | "password";
@@ -21,7 +22,7 @@ export interface Session {
 
 function toSession(user: FirebaseUser): Session {
   const provider = user.providerData.some((p) => p.providerId === "google.com") ? "google" : "password";
-  return { email: user.email!, nombre: user.displayName ?? user.email!, provider };
+  return { uid: user.uid, email: user.email!, nombre: user.displayName ?? user.email!, provider };
 }
 
 function mapAuthError(code: string | undefined, fallback: string): string {
@@ -66,7 +67,7 @@ export async function registerUser(
   try {
     const { user } = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), clave);
     await updateProfile(user, { displayName: nombre.trim() });
-    return { ok: true, user: { email: user.email!, nombre: nombre.trim(), provider: "password" } };
+    return { ok: true, user: { uid: user.uid, email: user.email!, nombre: nombre.trim(), provider: "password" } };
   } catch (e: unknown) {
     return { ok: false, error: mapAuthError((e as { code?: string }).code, "Error al registrarse. Intentá de nuevo.") };
   }

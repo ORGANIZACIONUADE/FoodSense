@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Icon } from "@/components/icons/icon";
 import { useAuth } from "@/context/auth-context";
+import { useNotificationSettings } from "@/lib/use-notification-settings";
 import { useRequireAuth } from "@/lib/use-require-auth";
 
 export default function PerfilPage() {
   const session = useRequireAuth();
   const { update, logout } = useAuth();
+  const { settings, loading: loadingNotifications, saving: savingNotifications, enable, disable } =
+    useNotificationSettings(session);
   const router = useRouter();
 
   const [nombre, setNombre] = useState(session?.nombre ?? "");
@@ -54,6 +57,16 @@ export default function PerfilPage() {
     await logout();
     router.push("/login");
   }
+
+  const notificationCopy = {
+    unsupported: settings.error ?? "Este navegador no soporta notificaciones web.",
+    "missing-config": "Falta configurar NEXT_PUBLIC_FIREBASE_VAPID_KEY.",
+    default: "Activá avisos de vencimiento para esta cuenta y dispositivo.",
+    granted: "El permiso está concedido, pero los avisos están pausados.",
+    denied: "El navegador bloqueó las notificaciones. Podés habilitarlas desde la configuración del sitio.",
+    enabled: "Vas a recibir avisos cuando haya productos por vencer.",
+    error: settings.error ?? "No se pudieron configurar las notificaciones.",
+  }[settings.status];
 
   return (
     <AppShell active="profile">
@@ -183,6 +196,48 @@ export default function PerfilPage() {
             </form>
           </section>
         )}
+
+        <section className="mb-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[13px] font-semibold uppercase tracking-wider text-ink-mute">
+                Notificaciones
+              </h2>
+              <p className="mt-1 text-sm text-ink-soft">{notificationCopy}</p>
+            </div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${settings.enabled ? "bg-green-soft" : "bg-surface-alt"}`}>
+              <Icon
+                name="bell"
+                size={19}
+                color={settings.enabled ? "#1F6B43" : "#9AA09C"}
+              />
+            </div>
+          </div>
+
+          {settings.status === "denied" || settings.status === "unsupported" || settings.status === "missing-config" ? (
+            <div className="rounded-xl border border-border-soft bg-surface-alt px-4 py-3 text-sm font-medium text-ink-soft">
+              {notificationCopy}
+            </div>
+          ) : settings.enabled ? (
+            <button
+              type="button"
+              onClick={disable}
+              disabled={savingNotifications || loadingNotifications}
+              className="h-[52px] w-full rounded-[16px] border border-border bg-bg text-[15px] font-semibold text-ink-soft transition-colors hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingNotifications ? "Guardando..." : "Pausar notificaciones"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={enable}
+              disabled={savingNotifications || loadingNotifications}
+              className="h-[52px] w-full rounded-[16px] bg-green text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingNotifications || loadingNotifications ? "Configurando..." : "Activar notificaciones"}
+            </button>
+          )}
+        </section>
 
         {/* Cerrar sesión */}
         <button

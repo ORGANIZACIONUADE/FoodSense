@@ -13,7 +13,6 @@ import { CategoryIcon } from "@/components/product/category-icon";
 
 import {
   STATE_OPTIONS,
-  STATE_LABELS,
   QUICK_PRESETS,
   addDaysToToday,
   dateToDays,
