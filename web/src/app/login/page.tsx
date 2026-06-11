@@ -69,8 +69,9 @@ export default function LoginPage() {
     <div className="flex min-h-svh flex-col items-center justify-center bg-bg px-5 py-12">
       <div className="w-full max-w-[390px]">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <BrandLogo variant="full" className="h-32 w-32 object-contain" />
+          <BrandLogo variant="icon" className="h-12 w-12 rounded-2xl object-contain" />
           <div className="text-center">
+            <p className="text-2xl font-bold tracking-tight">FoodSense</p>
             <p className="mt-0.5 text-sm text-ink-soft">Ingresá a tu cuenta</p>
           </div>
         </div>
