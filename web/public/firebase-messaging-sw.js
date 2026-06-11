@@ -16,7 +16,7 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title ?? "FoodSense";
   const options = {
     body: payload.notification?.body ?? "Tenés una nueva alerta de tu despensa.",
-    icon: "/favicon.ico",
+    icon: "/foodsense-icon.svg",
     data: payload.data,
   };
 

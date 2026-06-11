@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   description:
     "Gestioná tu inventario de alimentos y priorizá lo que vence antes.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/foodsense-icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/foodsense-icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
