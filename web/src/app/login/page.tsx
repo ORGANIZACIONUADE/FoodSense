@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/auth-context";
 import { Icon } from "@/components/icons/icon";
-import { BrandLogo } from "@/components/layout/brand-logo";
 
 export default function LoginPage() {
   const { session, loading, login, loginGoogle, recoverPassword } = useAuth();
@@ -69,9 +69,15 @@ export default function LoginPage() {
     <div className="flex min-h-svh flex-col items-center justify-center bg-bg px-5 py-12">
       <div className="w-full max-w-[390px]">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <BrandLogo variant="icon" className="h-12 w-12 rounded-2xl object-contain" />
+          <Image
+            src="/titulo.png"
+            alt="FoodSense"
+            width={481}
+            height={151}
+            priority
+            className="h-auto w-56 object-contain"
+          />
           <div className="text-center">
-            <p className="text-2xl font-bold tracking-tight">FoodSense</p>
             <p className="mt-0.5 text-sm text-ink-soft">Ingresá a tu cuenta</p>
           </div>
         </div>
