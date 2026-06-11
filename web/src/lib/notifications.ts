@@ -26,6 +26,37 @@ export type NotificationSettings = {
   error?: string;
 };
 
+function isIOSDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (
+    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+  );
+}
+
+function isStandaloneApp(): boolean {
+  if (typeof window === "undefined") return false;
+  const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
+}
+
+function getUnsupportedMessage(): string {
+  if (typeof window === "undefined") return "Las notificaciones no están disponibles en este entorno.";
+
+  if (!window.isSecureContext) {
+    return "Las notificaciones requieren HTTPS. En desarrollo usá localhost; en iPhone abrí la URL HTTPS.";
+  }
+
+  if (isIOSDevice() && !isStandaloneApp()) {
+    return "En iPhone, Chrome activa notificaciones solo si FoodSense está en la pantalla de inicio. Tocá Compartir, Agregar a pantalla de inicio, abrí FoodSense desde ese icono y volvé a activar.";
+  }
+
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return "Este navegador no expone las APIs de notificaciones push para esta instalación.";
+  }
+
+  return "Las notificaciones push no están disponibles en este navegador.";
+}
+
 function canUseNotifications(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -33,7 +64,7 @@ function canUseNotifications(): boolean {
     "Notification" in window &&
     "serviceWorker" in navigator &&
     "PushManager" in window
-  );
+);
 }
 
 export function getVapidKey(): string {
@@ -95,7 +126,7 @@ async function getReadyServiceWorker(): Promise<ServiceWorkerRegistration> {
 }
 
 export async function getNotificationSettings(): Promise<NotificationSettings> {
-  if (!canUseNotifications()) return { status: "unsupported", enabled: false };
+  if (!canUseNotifications()) return { status: "unsupported", enabled: false, error: getUnsupportedMessage() };
   if (!getVapidKey()) return { status: "missing-config", enabled: false };
 
   const enabled = areExpiryNotificationsEnabled();
@@ -113,7 +144,7 @@ export async function enableNotifications(session: Session): Promise<Notificatio
     return {
       status: "unsupported",
       enabled: false,
-      error: "Las notificaciones push requieren Chrome/Edge/Firefox en HTTPS o localhost.",
+      error: getUnsupportedMessage(),
     };
   }
   const vapidKey = getVapidKey();
@@ -124,7 +155,7 @@ export async function enableNotifications(session: Session): Promise<Notificatio
   if (permission !== "granted") return { status: "default", enabled: false };
 
   const messaging = await getClientMessaging();
-  if (!messaging) return { status: "unsupported", enabled: false };
+  if (!messaging) return { status: "unsupported", enabled: false, error: getUnsupportedMessage() };
 
   try {
     const registration = await getReadyServiceWorker();
@@ -156,7 +187,7 @@ export async function enableNotifications(session: Session): Promise<Notificatio
       status: isPushUnavailable ? "unsupported" : "error",
       enabled: false,
       error: isPushUnavailable
-        ? "El navegador no tiene un servicio push disponible. Probá desde Chrome o Edge usando http://localhost:3000, o desde una URL HTTPS."
+        ? getUnsupportedMessage()
         : message,
     };
   }
