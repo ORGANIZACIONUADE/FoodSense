@@ -7,6 +7,8 @@ import {
   EmailAuthProvider,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -88,6 +90,20 @@ export async function updateUser(changes: {
     return { ok: true, nombre: changes.nombre?.trim() };
   } catch (e: unknown) {
     return { ok: false, error: mapAuthError((e as { code?: string }).code, "Error al actualizar. Intentá de nuevo.") };
+  }
+}
+
+export async function loginWithGoogle(): Promise<{ ok: true; user: Session } | { ok: false; error: string }> {
+  try {
+    const provider = new GoogleAuthProvider();
+    const { user } = await signInWithPopup(auth, provider);
+    return { ok: true, user: toSession(user) };
+  } catch (e: unknown) {
+    const code = (e as { code?: string }).code;
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      return { ok: false, error: "" };
+    }
+    return { ok: false, error: "Error al ingresar con Google. Intentá de nuevo." };
   }
 }
 
