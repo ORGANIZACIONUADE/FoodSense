@@ -8,6 +8,8 @@ import {
   logoutUser,
   loginWithGoogle,
   subscribeToAuth,
+  resetPassword,
+  changeUserEmail,
   type Session,
 } from "@/lib/auth";
 
@@ -18,6 +20,8 @@ interface AuthContextValue {
   loginGoogle(): Promise<{ ok: boolean; error?: string }>;
   register(email: string, nombre: string, clave: string): Promise<{ ok: boolean; error?: string }>;
   update(changes: { nombre?: string; clave?: string; claveActual?: string }): Promise<{ ok: boolean; error?: string }>;
+  sendPasswordReset(email: string): Promise<{ ok: boolean; error?: string }>;
+  changeEmail(newEmail: string, claveActual: string): Promise<{ ok: boolean; error?: string }>;
   logout(): Promise<void>;
 }
 
@@ -65,13 +69,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }
 
+  async function sendPasswordReset(email: string) {
+    const result = await resetPassword(email);
+    if (!result.ok) return { ok: false, error: result.error };
+    return { ok: true };
+  }
+
+  async function changeEmail(newEmail: string, claveActual: string) {
+    const result = await changeUserEmail(newEmail, claveActual);
+    if (!result.ok) return { ok: false, error: result.error };
+    return { ok: true };
+  }
+
   async function logout() {
     await logoutUser();
     setSession(null);
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, login, loginGoogle, register, update, logout }}>
+    <AuthContext.Provider value={{ session, loading, login, loginGoogle, register, update, sendPasswordReset, changeEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );

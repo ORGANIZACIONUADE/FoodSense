@@ -9,6 +9,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
+  verifyBeforeUpdateEmail,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -111,4 +113,33 @@ export async function loginWithGoogle(): Promise<{ ok: true; user: Session } | {
 
 export async function logoutUser(): Promise<void> {
   await signOut(auth);
+}
+
+export async function resetPassword(
+  email: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+    return { ok: true };
+  } catch (e: unknown) {
+    const code = (e as { code?: string }).code;
+    if (code === "auth/invalid-email") return { ok: false, error: "El email ingresado no es válido." };
+    return { ok: false, error: "No se pudo enviar el correo. Intentá de nuevo." };
+  }
+}
+
+export async function changeUserEmail(
+  newEmail: string,
+  claveActual: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = auth.currentUser;
+  if (!user || !user.email) return { ok: false, error: "No hay sesión activa." };
+  try {
+    const credential = EmailAuthProvider.credential(user.email, claveActual);
+    await reauthenticateWithCredential(user, credential);
+    await verifyBeforeUpdateEmail(user, newEmail.trim().toLowerCase());
+    return { ok: true };
+  } catch (e: unknown) {
+    return { ok: false, error: mapAuthError((e as { code?: string }).code, "Error al cambiar el email. Intentá de nuevo.") };
+  }
 }

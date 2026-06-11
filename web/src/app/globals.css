@@ -33,6 +33,10 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+button, a {
+  cursor: pointer;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-ink);

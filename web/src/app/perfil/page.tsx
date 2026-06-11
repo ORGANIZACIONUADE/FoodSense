@@ -9,7 +9,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 
 export default function PerfilPage() {
   const session = useRequireAuth();
-  const { update, logout } = useAuth();
+  const { update, logout, changeEmail } = useAuth();
   const router = useRouter();
 
   const [nombre, setNombre] = useState(session?.nombre ?? "");
@@ -20,7 +20,27 @@ export default function PerfilPage() {
   const [msgDatos, setMsgDatos] = useState<{ ok: boolean; text: string } | null>(null);
   const [msgClave, setMsgClave] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const [emailMode, setEmailMode] = useState(false);
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [claveEmail, setClaveEmail] = useState("");
+  const [msgEmail, setMsgEmail] = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   if (!session) return null;
+
+  async function handleEmail() {
+    setMsgEmail(null);
+    setEmailLoading(true);
+    const result = await changeEmail(nuevoEmail, claveEmail);
+    setEmailLoading(false);
+    if (!result.ok) {
+      setMsgEmail({ ok: false, text: result.error ?? "Error al cambiar el email." });
+    } else {
+      setMsgEmail({ ok: true, text: `Te enviamos un correo a ${nuevoEmail} para confirmar el cambio.` });
+      setNuevoEmail("");
+      setClaveEmail("");
+    }
+  }
 
   async function handleDatos(e: React.FormEvent) {
     e.preventDefault();
@@ -109,9 +129,57 @@ export default function PerfilPage() {
                 <span className="flex-1 text-[15px] font-semibold text-ink-mute">
                   {session.email}
                 </span>
+                {session.provider === "password" && (
+                  <button
+                    type="button"
+                    onClick={() => { setEmailMode((v) => !v); setMsgEmail(null); }}
+                    className="text-[12.5px] font-semibold text-green"
+                  >
+                    {emailMode ? "Cancelar" : "Cambiar"}
+                  </button>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-ink-faint">El email no se puede cambiar.</p>
             </div>
+
+            {emailMode && session.provider === "password" && (
+              <div className="flex flex-col gap-3 rounded-xl border border-border bg-bg p-4">
+                <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-surface px-4">
+                  <Icon name="user" size={18} color="#9AA09C" />
+                  <input
+                    type="email"
+                    placeholder="Nuevo email"
+                    value={nuevoEmail}
+                    onChange={(e) => { setNuevoEmail(e.target.value); setMsgEmail(null); }}
+                    className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
+                  />
+                </div>
+                <div className="flex h-[52px] items-center gap-2 rounded-xl border border-border bg-surface px-4">
+                  <Icon name="lock" size={18} color="#9AA09C" />
+                  <input
+                    type="password"
+                    placeholder="Contraseña actual"
+                    value={claveEmail}
+                    onChange={(e) => { setClaveEmail(e.target.value); setMsgEmail(null); }}
+                    className="flex-1 bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-ink-mute"
+                  />
+                </div>
+
+                {msgEmail && (
+                  <p className={`rounded-lg px-3 py-2 text-sm ${msgEmail.ok ? "bg-green-wash text-green-deep" : "bg-red-wash text-red-deep"}`}>
+                    {msgEmail.text}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleEmail}
+                  disabled={emailLoading || !nuevoEmail || !claveEmail}
+                  className="h-[44px] w-full rounded-[14px] bg-green text-[14px] font-semibold text-white transition-opacity disabled:opacity-60"
+                >
+                  {emailLoading ? "Enviando…" : "Enviar correo de verificación"}
+                </button>
+              </div>
+            )}
 
             {msgDatos && (
               <p className={`rounded-lg px-3 py-2 text-sm ${msgDatos.ok ? "bg-green-wash text-green-deep" : "bg-red-wash text-red-deep"}`}>
