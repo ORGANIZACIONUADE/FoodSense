@@ -8,6 +8,7 @@ import { DaysPill } from "@/components/product/days-pill";
 import { CATEGORIES } from "@/lib/categories";
 import { useInventory } from "@/lib/use-inventory";
 import type { CategoryKey, ProductState } from "@/lib/types";
+import { toExpiresAt } from "@/lib/date-utils";
 import { BarcodeScanner } from "./barcode-scanner";
 import type { BarcodeScanResult } from "./barcode-scanner";
 import { CategoryIcon } from "@/components/product/category-icon";
@@ -39,7 +40,7 @@ type SessionItem = {
 
 export function AddProductForm() {
   const router = useRouter();
-  const { addProduct, updateProduct, remove } = useInventory();
+  const { products, addProduct, updateProduct, remove } = useInventory();
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CategoryKey>("lacteos");
@@ -65,6 +66,15 @@ export function AddProductForm() {
   const dateLabel = formatDateLabel(expiryDate);
   const dateHint = formatExpiryHint(getSuggestedExpiryDays(category, state));
   const stateHint = formatStateHint(getSuggestedState(category));
+
+  function findMatchingProduct(productName: string, productExpiryDate: string) {
+    const normalized = productName.trim().toLowerCase();
+    return products.find(
+      (p) =>
+        p.name.toLowerCase() === normalized &&
+        toExpiresAt(p.daysUntilExpiry) === productExpiryDate,
+    );
+  }
 
   function handleCategoryChange(nextCategory: CategoryKey, isManual = true) {
     if (isManual) setHasManuallyChangedCategory(true);
@@ -194,21 +204,46 @@ export function AddProductForm() {
       setNameError(true);
       return;
     }
-    const newItem: SessionItem = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      category,
-      state,
-      daysUntilExpiry,
-      expiryDate,
-      quantity: 1,
-    };
-    addProduct(newItem);
-    setSessionProducts((prev) => [...prev, newItem]);
-    
+
+    const existing = findMatchingProduct(name, expiryDate);
+    if (existing) {
+      const newQty = (existing.quantity ?? 1) + 1;
+      updateProduct(existing.id, { quantity: newQty });
+      setSessionProducts((prev) => {
+        const inSession = prev.find((p) => p.id === existing.id);
+        if (inSession) {
+          return prev.map((p) => (p.id === existing.id ? { ...p, quantity: newQty } : p));
+        }
+        return [
+          ...prev,
+          {
+            id: existing.id,
+            name: existing.name,
+            category: existing.category,
+            state: existing.state,
+            daysUntilExpiry: existing.daysUntilExpiry,
+            expiryDate,
+            quantity: newQty,
+          },
+        ];
+      });
+    } else {
+      const newItem: SessionItem = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        category,
+        state,
+        daysUntilExpiry,
+        expiryDate,
+        quantity: 1,
+      };
+      addProduct(newItem);
+      setSessionProducts((prev) => [...prev, newItem]);
+    }
+
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 2000);
-    
+
     setName("");
     setHasManuallyChangedCategory(false);
     setExpiryWasCustomized(false);
@@ -223,21 +258,45 @@ export function AddProductForm() {
       setNameError(true);
       return;
     }
-    const finalItem: SessionItem = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      category,
-      state,
-      daysUntilExpiry,
-      expiryDate,
-      quantity: 1,
-    };
-    addProduct(finalItem);
 
-    if (sessionProducts.length > 0) {
-      setSummaryItems([...sessionProducts, finalItem]);
+    const existing = findMatchingProduct(name, expiryDate);
+    if (existing) {
+      const newQty = (existing.quantity ?? 1) + 1;
+      updateProduct(existing.id, { quantity: newQty });
+      const mergedItem: SessionItem = {
+        id: existing.id,
+        name: existing.name,
+        category: existing.category,
+        state: existing.state,
+        daysUntilExpiry: existing.daysUntilExpiry,
+        expiryDate,
+        quantity: newQty,
+      };
+      if (sessionProducts.length > 0) {
+        const inSession = sessionProducts.find((p) => p.id === existing.id);
+        const updatedSession = inSession
+          ? sessionProducts.map((p) => (p.id === existing.id ? mergedItem : p))
+          : [...sessionProducts, mergedItem];
+        setSummaryItems(updatedSession);
+      } else {
+        router.push("/despensa");
+      }
     } else {
-      router.push("/despensa");
+      const finalItem: SessionItem = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        category,
+        state,
+        daysUntilExpiry,
+        expiryDate,
+        quantity: 1,
+      };
+      addProduct(finalItem);
+      if (sessionProducts.length > 0) {
+        setSummaryItems([...sessionProducts, finalItem]);
+      } else {
+        router.push("/despensa");
+      }
     }
   }
 
