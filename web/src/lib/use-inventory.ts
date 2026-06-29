@@ -1,105 +1,145 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getInventoryByUrgency } from "./inventory";
+import { useEffect, useState, useCallback } from "react";
 import type { Product } from "./types";
+import { supabase } from "./supabase-client";
+import { auth } from "./firebase";
+import { toExpiresAt, toDaysUntilExpiry } from "./date-utils";
 
-const STORAGE_KEY = "foodsense-inventory";
-const CONSUMED_KEY = "foodsense-consumed";
-const WASTED_KEY = "foodsense-wasted";
-
-function load(): Product[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Product[];
-  } catch {}
-  return getInventoryByUrgency();
-}
-
-function save(products: Product[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-  } catch {}
-}
-
-function loadConsumedEntries(): { at: string }[] {
-  try {
-    const raw = localStorage.getItem(CONSUMED_KEY);
-    if (raw) return JSON.parse(raw) as { at: string }[];
-  } catch {}
-  return [];
-}
-
-function loadWastedEntries(): { at: string }[] {
-  try {
-    const raw = localStorage.getItem(WASTED_KEY);
-    if (raw) return JSON.parse(raw) as { at: string }[];
-  } catch {}
-  return [];
-}
-
-function countThisMonth(entries: { at: string }[]): number {
-  const now = new Date();
-  return entries.filter((e) => {
-    const d = new Date(e.at);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToProduct(row: any): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    state: row.state,
+    daysUntilExpiry: toDaysUntilExpiry(row.expires_at),
+    ...(row.quantity != null ? { quantity: row.quantity as number } : {}),
+  };
 }
 
 export function useInventory() {
-  const [products, setProducts] = useState<Product[]>(getInventoryByUrgency);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [consumedThisMonth, setConsumedThisMonth] = useState(0);
   const [wastedThisMonth, setWastedThisMonth] = useState(0);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setProducts(load());
-      setConsumedThisMonth(countThisMonth(loadConsumedEntries()));
-      setWastedThisMonth(countThisMonth(loadWastedEntries()));
-      setIsLoaded(true);
-    }, 0);
+  const reload = useCallback(async () => {
+    const startOfMonth = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1,
+    ).toISOString();
 
-    return () => window.clearTimeout(timeout);
+    const [{ data: rows }, { data: events }] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, name, category, state, expires_at, quantity")
+        .order("expires_at", { ascending: true }),
+      supabase
+        .from("product_events")
+        .select("type")
+        .gte("occurred_at", startOfMonth),
+    ]);
+
+    if (rows) setProducts(rows.map(rowToProduct));
+    if (events) {
+      setConsumedThisMonth(events.filter((e) => e.type === "consumed").length);
+      setWastedThisMonth(events.filter((e) => e.type === "wasted").length);
+    }
   }, []);
 
   useEffect(() => {
-    if (isLoaded) {
-      save(products);
-    }
-  }, [products, isLoaded]);
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        setProducts([]);
+        setIsLoaded(true);
+        return;
+      }
+      await reload();
+      setIsLoaded(true);
+    });
+    return unsubscribe;
+  }, [reload]);
 
-  function addProduct(product: Product) {
+  async function addProduct(product: Product) {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
     setProducts((prev) =>
       [...prev, product].sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
     );
+
+    const { data } = await supabase
+      .from("products")
+      .insert({
+        user_id: uid,
+        name: product.name,
+        category: product.category,
+        state: product.state,
+        expires_at: toExpiresAt(product.daysUntilExpiry),
+        quantity: product.quantity ?? null,
+      })
+      .select()
+      .single();
+
+    if (data) {
+      const saved = rowToProduct(data);
+      setProducts((prev) =>
+        prev
+          .map((p) => (p.id === product.id ? saved : p))
+          .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
+      );
+    }
   }
 
-  function consume(id: string) {
+  async function consume(id: string) {
+    const uid = auth.currentUser?.uid;
     setProducts((prev) => prev.filter((p) => p.id !== id));
-    const entries = loadConsumedEntries();
-    entries.push({ at: new Date().toISOString() });
-    try {
-      localStorage.setItem(CONSUMED_KEY, JSON.stringify(entries));
-    } catch {}
-    setConsumedThisMonth(countThisMonth(entries));
+    setConsumedThisMonth((c) => c + 1);
+    await Promise.all([
+      supabase.from("products").delete().eq("id", id),
+      uid
+        ? supabase.from("product_events").insert({ user_id: uid, type: "consumed" })
+        : Promise.resolve(),
+    ]);
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
+    const uid = auth.currentUser?.uid;
     setProducts((prev) => prev.filter((p) => p.id !== id));
-    const entries = loadWastedEntries();
-    entries.push({ at: new Date().toISOString() });
-    try {
-      localStorage.setItem(WASTED_KEY, JSON.stringify(entries));
-    } catch {}
-    setWastedThisMonth(countThisMonth(entries));
+    setWastedThisMonth((w) => w + 1);
+    await Promise.all([
+      supabase.from("products").delete().eq("id", id),
+      uid
+        ? supabase.from("product_events").insert({ user_id: uid, type: "wasted" })
+        : Promise.resolve(),
+    ]);
   }
 
-  function updateProduct(id: string, changes: Partial<Product>) {
+  async function updateProduct(id: string, changes: Partial<Product>) {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...changes } : p)),
     );
+    const dbChanges: Record<string, unknown> = {};
+    if (changes.name !== undefined) dbChanges.name = changes.name;
+    if (changes.category !== undefined) dbChanges.category = changes.category;
+    if (changes.state !== undefined) dbChanges.state = changes.state;
+    if (changes.quantity !== undefined) dbChanges.quantity = changes.quantity;
+    if (changes.daysUntilExpiry !== undefined) {
+      dbChanges.expires_at = toExpiresAt(changes.daysUntilExpiry);
+    }
+    await supabase.from("products").update(dbChanges).eq("id", id);
   }
 
-  return { products, addProduct, consume, remove, updateProduct, isLoaded, consumedThisMonth, wastedThisMonth };
+  return {
+    products,
+    addProduct,
+    consume,
+    remove,
+    updateProduct,
+    isLoaded,
+    consumedThisMonth,
+    wastedThisMonth,
+  };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { DaysPill } from "@/components/product/days-pill";
@@ -7,6 +8,9 @@ import { Icon } from "@/components/icons/icon";
 import { countUrgent } from "@/lib/inventory";
 import { useInventory } from "@/lib/use-inventory";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { VoiceButton } from "@/components/voz/voice-button";
+import { VoiceActionModal } from "@/components/voz/voice-action-modal";
+import type { VoiceAction } from "@/components/voz/voice-action-modal";
 
 const URGENCY_BANDS = [
   { label: "Urgente",  maxDays: 1,  fg: "#D85B4A", bg: "#FADDD6" },
@@ -22,7 +26,10 @@ function classifyUrgency(days: number) {
 
 export default function HomePage() {
   const session = useRequireAuth();
-  const { products, consumedThisMonth, wastedThisMonth } = useInventory();
+  const { products, consumedThisMonth, wastedThisMonth, addProduct, consume, updateProduct } =
+    useInventory();
+  const [pendingActions, setPendingActions] = useState<VoiceAction[] | null>(null);
+  const [pendingTranscripcion, setPendingTranscripcion] = useState<string | undefined>();
 
   if (!session) return null;
 
@@ -121,6 +128,10 @@ export default function HomePage() {
                 Agregar producto
                 <Icon name="plus" size={18} color="#2F8F5C" strokeWidth={2} />
               </Link>
+              <VoiceButton onAction={(actions, transcripcion) => {
+                setPendingTranscripcion(transcripcion);
+                setPendingActions(actions);
+              }} />
             </div>
           </div>
 
@@ -183,6 +194,15 @@ export default function HomePage() {
 
         </div>
       </div>
+      <VoiceActionModal
+        actions={pendingActions}
+        products={products}
+        transcripcion={pendingTranscripcion}
+        onAdd={addProduct}
+        onConsume={consume}
+        onUpdate={updateProduct}
+        onClose={() => { setPendingActions(null); setPendingTranscripcion(undefined); }}
+      />
     </AppShell>
   );
 }
