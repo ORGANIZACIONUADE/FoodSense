@@ -1,6 +1,8 @@
 # FoodSense · Handoff para Claude Code
 
-Esta carpeta contiene **8 pantallas hi-fi** de FoodSense + el sistema de diseño completo. Está pensada para ser leída por Claude Code como referencia visual y de tokens para implementar la PWA en **Next.js + Tailwind CSS**.
+> **Estado documental:** anexo histórico del proceso de diseño. Este paquete conserva mockups, variantes y decisiones visuales previas a la implementación; no define el alcance vigente ni la arquitectura final. Para el estado oficial del MVP consultar `../FoodSense_Informe_Final_Profesional.docx` y `../README.md`. Las carpetas `screen-*` y `screens-*` son variantes deliberadas de diseño, no funcionalidades adicionales.
+
+Esta carpeta contiene pantallas hi-fi y el sistema de diseño utilizado como referencia para la PWA en **Next.js + Tailwind CSS**.
 
 ---
 
@@ -252,7 +254,9 @@ Ejemplos del producto:
 
 ---
 
-## Próximos pasos sugeridos (después del setup)
+## Próximos pasos sugeridos en el handoff original
+
+> La lista siguiente se conserva como evidencia histórica. No debe interpretarse como trabajo pendiente vigente ni como alcance comprometido del MVP.
 
 1. Setup base: tailwind config + fonts + estructura de carpetas
 2. Componentes UI primitivos (`Button`, `Chip`, `Card`, `Icon`)
