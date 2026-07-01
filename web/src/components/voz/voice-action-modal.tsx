@@ -29,6 +29,7 @@ type EditableOp = {
   campo_actualizar: string | null;
   nuevo_valor: string; // YYYY-MM-DD when campo_actualizar === "fecha_vencimiento"
   selectedProductId: string | null;
+  selectedProductIds: string[]; // auto-selected when multiple items share same name (eliminar)
 };
 
 type Props = {
@@ -76,13 +77,25 @@ function daysToDateStr(days: number): string {
 
 function findMatches(products: Product[], nombre: string): Product[] {
   const n = normalize(nombre);
-  return products.filter(
+  const direct = products.filter(
     (p) => normalize(p.name) === n || normalize(p.name).includes(n),
   );
+  if (direct.length > 0) return direct;
+  if (n.endsWith("s")) {
+    const singular = n.slice(0, -1);
+    return products.filter(
+      (p) => normalize(p.name) === singular || normalize(p.name).includes(singular),
+    );
+  }
+  return [];
 }
 
 function initOp(action: VoiceAction, products: Product[]): EditableOp {
   const matches = action.accion !== "agregar" ? findMatches(products, action.producto) : [];
+  const allSameName =
+    action.accion === "eliminar" &&
+    matches.length > 1 &&
+    matches.every((m) => normalize(m.name) === normalize(matches[0].name));
   const autoSelected = matches.length === 1 ? matches[0] : null;
   return {
     accion: action.accion,
@@ -96,6 +109,7 @@ function initOp(action: VoiceAction, products: Product[]): EditableOp {
     campo_actualizar: action.campo_actualizar,
     nuevo_valor: action.nuevo_valor ?? defaultDateStr(),
     selectedProductId: autoSelected?.id ?? null,
+    selectedProductIds: allSameName ? matches.map((m) => m.id) : [],
   };
 }
 
@@ -163,9 +177,11 @@ function useVoiceOps(actions: VoiceAction[] | null, products: Product[]) {
 
   const canConfirm =
     ops.length > 0 &&
-    ops.every((op) =>
-      op.accion === "agregar" ? op.producto.trim().length > 0 : op.selectedProductId !== null,
-    );
+    ops.every((op) => {
+      if (op.accion === "agregar") return op.producto.trim().length > 0;
+      if (op.accion === "eliminar") return op.selectedProductId !== null || op.selectedProductIds.length > 0;
+      return op.selectedProductId !== null;
+    });
 
   return { ops, updateOp, removeOp, canConfirm };
 }
@@ -194,13 +210,16 @@ export function VoiceActionModal({
             daysUntilExpiry: toDaysUntilExpiry(op.fecha_vencimiento),
             quantity: op.cantidad,
           });
-        } else if (op.accion === "eliminar" && op.selectedProductId) {
-          if (op.fecha_vencimiento) {
-            await onUpdate(op.selectedProductId, {
-              daysUntilExpiry: toDaysUntilExpiry(op.fecha_vencimiento),
-            });
+        } else if (op.accion === "eliminar") {
+          const ids =
+            op.selectedProductIds.length > 0
+              ? op.selectedProductIds
+              : op.selectedProductId
+                ? [op.selectedProductId]
+                : [];
+          for (const id of ids) {
+            await onConsume(id);
           }
-          await onConsume(op.selectedProductId);
         } else if (op.accion === "actualizar" && op.selectedProductId) {
           if (op.campo_actualizar === "fecha_vencimiento") {
             await onUpdate(op.selectedProductId, {
@@ -253,7 +272,7 @@ export function VoiceActionModal({
             return (
               <div
                 key={idx}
-                className="flex h-[126px] shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
+                className="flex min-h-[126px] shrink-0 flex-col rounded-xl border border-border bg-surface"
               >
                 {/* Tinted label row */}
                 <div
@@ -278,7 +297,7 @@ export function VoiceActionModal({
                 </div>
 
                 {/* Inline editable body */}
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-hidden p-3">
+                <div className="flex flex-1 flex-col gap-2 p-3">
                   {op.accion === "agregar" && (
                     <>
                       <div className="flex items-center gap-2">
@@ -327,9 +346,41 @@ export function VoiceActionModal({
 
                   {op.accion === "eliminar" && (
                     <>
+                      {/* Editable quantity + name */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          value={op.cantidad}
+                          onChange={(e) =>
+                            updateOp(idx, { cantidad: Math.max(1, Number(e.target.value)) })
+                          }
+                          className="w-14 rounded-lg border border-border bg-bg px-2 py-1.5 text-center text-[13px] font-semibold text-ink"
+                        />
+                        <span className="text-[13px] text-ink-mute">×</span>
+                        <input
+                          type="text"
+                          value={op.producto}
+                          onChange={(e) =>
+                            updateOp(idx, {
+                              producto: e.target.value,
+                              selectedProductId: null,
+                              selectedProductIds: [],
+                            })
+                          }
+                          placeholder="nombre del producto"
+                          className="min-w-0 flex-1 rounded-lg border border-border bg-bg px-2 py-1.5 text-[13px] font-semibold text-ink"
+                        />
+                      </div>
+
+                      {/* Product selection */}
                       {noMatch ? (
                         <p className="rounded-lg bg-[#FADDD6] px-3 py-2 text-[12px] text-[#D85B4A]">
                           &ldquo;{op.producto}&rdquo; no está en tu despensa.
+                        </p>
+                      ) : op.selectedProductIds.length > 0 ? (
+                        <p className="rounded-lg bg-[#E5F1E8] px-3 py-2 text-[12px] text-[#2F8F5C]">
+                          Se eliminará de las {op.selectedProductIds.length} entradas con ese nombre.
                         </p>
                       ) : (
                         <>
