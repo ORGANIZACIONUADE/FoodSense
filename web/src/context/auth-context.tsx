@@ -13,6 +13,7 @@ import {
   subscribeToAuth,
   type Session,
 } from "@/lib/auth";
+import { useFcmForeground } from "@/lib/use-fcm-foreground";
 
 interface AuthContextValue {
   session: Session | null;
@@ -32,6 +33,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useFcmForeground();
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth((s) => {
