@@ -27,18 +27,50 @@ function saveSeen(seen: SeenMap): void {
   } catch {}
 }
 
-function notificationText(product: Product): { title: string; body: string } {
-  if (product.daysUntilExpiry <= 0) {
-    return {
-      title: `${product.name} vence hoy`,
-      body: "Revisá tu despensa para consumirlo o actualizar su estado.",
-    };
+interface ExpiryStats {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+}
+
+function computeStats(products: Product[]): ExpiryStats {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
+
+  return products.reduce(
+    (acc, p) => {
+      if (p.daysUntilExpiry < 0 || p.daysUntilExpiry >= daysInMonth) return acc;
+      acc.thisMonth++;
+      if (p.daysUntilExpiry <= 7) acc.thisWeek++;
+      if (p.daysUntilExpiry === 0) acc.today++;
+      return acc;
+    },
+    { today: 0, thisWeek: 0, thisMonth: 0 },
+  );
+}
+
+function buildSummaryText(stats: ExpiryStats): { title: string; body: string } | null {
+  if (stats.thisMonth === 0) return null;
+
+  const title = "FoodSense — alerta de vencimientos";
+  let body: string;
+  const prod = (n: number) => (n === 1 ? "producto" : "productos");
+
+  if (stats.thisWeek === 0) {
+    body = `Tenés ${stats.thisMonth} ${prod(stats.thisMonth)} por vencer este mes.`;
+  } else if (stats.today === 0) {
+    body =
+      `Tenés ${stats.thisMonth} ${prod(stats.thisMonth)} por vencer este mes, ` +
+      `en total ${stats.thisWeek} esta semana.`;
+  } else {
+    body =
+      `Tenés ${stats.thisMonth} ${prod(stats.thisMonth)} por vencer este mes, ` +
+      `en total ${stats.thisWeek} esta semana` +
+      ` de los que ${stats.today === 1 ? "1 vence" : `${stats.today} vencen`} hoy.`;
   }
 
-  return {
-    title: `${product.name} vence mañana`,
-    body: "Tenelo presente para evitar desperdicios.",
-  };
+  return { title, body };
 }
 
 export function useExpiryNotifications(products: Product[], session: Session | null) {
@@ -49,25 +81,27 @@ export function useExpiryNotifications(products: Product[], session: Session | n
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (!areExpiryNotificationsEnabled() || Notification.permission !== "granted") return;
 
-    const urgent = products.find((product) => product.daysUntilExpiry <= 1);
-    if (!urgent) return;
+    const stats = computeStats(products);
+    if (stats.thisMonth === 0) return;
 
-    const key = `${session.uid}:${todayKey()}:${urgent.id}`;
+    const key = `${session.uid}:${todayKey()}:summary`;
     const seen = loadSeen();
     if (seen[key]) return;
 
-    const { title, body } = notificationText(urgent);
+    const notification = buildSummaryText(stats);
+    if (!notification) return;
+
     seen[key] = true;
     saveSeen(seen);
 
     if (document.visibilityState === "visible") {
-      window.setTimeout(() => setMessage(`${title}. ${body}`), 0);
+      window.setTimeout(() => setMessage(notification.body), 0);
     }
 
     try {
-      new Notification(title, {
-        body,
-        tag: `foodsense-expiry-${urgent.id}`,
+      new Notification(notification.title, {
+        body: notification.body,
+        tag: "foodsense-expiry-summary",
         icon: "/foodsense-icon-192.png",
       });
     } catch {}

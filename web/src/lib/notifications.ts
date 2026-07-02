@@ -4,6 +4,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { Messaging } from "firebase/messaging";
 import type { Session } from "./auth";
 import { db } from "./firebase";
+import { supabase } from "./supabase-client";
 
 const ENABLED_KEY = "foodsense-notifications-enabled";
 const TOKEN_KEY = "foodsense-fcm-token";
@@ -63,6 +64,7 @@ async function getClientMessaging(): Promise<Messaging | null> {
 }
 
 async function saveNotificationToken(session: Session, token: string, enabled: boolean): Promise<void> {
+  // Save to Firestore (existing behavior)
   const tokenId = `${session.uid}_${normalizeTokenId(token)}`;
   await setDoc(
     doc(db, "notificationTokens", tokenId),
@@ -77,6 +79,19 @@ async function saveNotificationToken(session: Session, token: string, enabled: b
     },
     { merge: true },
   );
+
+  // Also save to Supabase so the Edge Function can read it without Firebase Admin SDK
+  await supabase
+    .from("notification_tokens")
+    .upsert(
+      {
+        user_id: session.uid,
+        token,
+        enabled,
+        user_agent: navigator.userAgent,
+      },
+      { onConflict: "user_id,token" },
+    );
 }
 
 async function getReadyServiceWorker(): Promise<ServiceWorkerRegistration> {
