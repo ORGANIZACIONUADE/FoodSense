@@ -1,15 +1,14 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { Messaging } from "firebase/messaging";
 import type { Session } from "./auth";
-import { db } from "./firebase";
 import { supabase } from "./supabase-client";
 
 const ENABLED_KEY = "foodsense-notifications-enabled";
 const TOKEN_KEY = "foodsense-fcm-token";
 const SW_PATH = "/firebase-messaging-sw.js";
 const SW_READY_TIMEOUT_MS = 10000;
+const GET_TOKEN_TIMEOUT_MS = 20000;
 
 export type NotificationStatus =
   | "unsupported"
@@ -50,10 +49,6 @@ function setExpiryNotificationsEnabled(enabled: boolean): void {
   localStorage.setItem(ENABLED_KEY, String(enabled));
 }
 
-function normalizeTokenId(token: string): string {
-  return token.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 140);
-}
-
 async function getClientMessaging(): Promise<Messaging | null> {
   if (!canUseNotifications()) return null;
   const { getMessaging, isSupported } = await import("firebase/messaging");
@@ -64,32 +59,10 @@ async function getClientMessaging(): Promise<Messaging | null> {
 }
 
 async function saveNotificationToken(session: Session, token: string, enabled: boolean): Promise<void> {
-  // Save to Firestore (existing behavior)
-  const tokenId = `${session.uid}_${normalizeTokenId(token)}`;
-  await setDoc(
-    doc(db, "notificationTokens", tokenId),
-    {
-      uid: session.uid,
-      email: session.email,
-      token,
-      enabled,
-      userAgent: navigator.userAgent,
-      updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  // Also save to Supabase so the Edge Function can read it without Firebase Admin SDK
   await supabase
     .from("notification_tokens")
     .upsert(
-      {
-        user_id: session.uid,
-        token,
-        enabled,
-        user_agent: navigator.userAgent,
-      },
+      { user_id: session.uid, token, enabled, user_agent: navigator.userAgent },
       { onConflict: "user_id,token" },
     );
 }
@@ -124,30 +97,49 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
 }
 
 export async function enableNotifications(session: Session): Promise<NotificationSettings> {
+  console.log("[notifications] enableNotifications start");
+
   if (!canUseNotifications()) {
+    console.warn("[notifications] canUseNotifications=false");
     return {
       status: "unsupported",
       enabled: false,
       error: "Las notificaciones push requieren Chrome/Edge/Firefox en HTTPS o localhost.",
     };
   }
+
   const vapidKey = getVapidKey();
+  console.log("[notifications] vapidKey present:", !!vapidKey);
   if (!vapidKey) return { status: "missing-config", enabled: false };
 
   const permission = await Notification.requestPermission();
+  console.log("[notifications] permission:", permission);
   if (permission === "denied") return { status: "denied", enabled: false };
   if (permission !== "granted") return { status: "default", enabled: false };
 
   const messaging = await getClientMessaging();
+  console.log("[notifications] messaging:", !!messaging);
   if (!messaging) return { status: "unsupported", enabled: false };
 
   try {
+    console.log("[notifications] registering service worker...");
     const registration = await getReadyServiceWorker();
+    console.log("[notifications] SW ready, state:", registration.active?.state);
+
     const { getToken } = await import("firebase/messaging");
-    const token = await getToken(messaging, {
-      vapidKey,
-      serviceWorkerRegistration: registration,
-    });
+    console.log("[notifications] calling getToken (timeout: %dms)...", GET_TOKEN_TIMEOUT_MS);
+
+    const token = await Promise.race([
+      getToken(messaging, { vapidKey, serviceWorkerRegistration: registration }),
+      new Promise<never>((_, reject) =>
+        window.setTimeout(
+          () => reject(new Error(`getToken tardó más de ${GET_TOKEN_TIMEOUT_MS / 1000}s. Verificá la VAPID key y que el service worker esté activo.`)),
+          GET_TOKEN_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+
+    console.log("[notifications] token obtained:", !!token);
 
     if (!token) {
       return {
@@ -159,19 +151,24 @@ export async function enableNotifications(session: Session): Promise<Notificatio
 
     localStorage.setItem(TOKEN_KEY, token);
     setExpiryNotificationsEnabled(true);
+    console.log("[notifications] saving token to Firestore + Supabase...");
     await saveNotificationToken(session, token, true);
+    console.log("[notifications] done, status: enabled");
     return { status: "enabled", enabled: true, token };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al activar notificaciones.";
+    console.error("[notifications] error:", message);
+
     const isPushUnavailable =
       message.toLowerCase().includes("push service not available") ||
-      message.toLowerCase().includes("registration failed");
+      message.toLowerCase().includes("registration failed") ||
+      message.toLowerCase().includes("no push service");
 
     return {
       status: isPushUnavailable ? "unsupported" : "error",
       enabled: false,
       error: isPushUnavailable
-        ? "El navegador no tiene un servicio push disponible. Probá desde Chrome o Edge usando http://localhost:3000, o desde una URL HTTPS."
+        ? "El navegador no tiene un servicio push disponible. Probá desde Chrome o Edge en HTTPS."
         : message,
     };
   }
