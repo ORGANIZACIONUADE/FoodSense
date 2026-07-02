@@ -119,4 +119,10 @@ export const ICON_PATHS: Record<string, ReactNode> = {
       <path d="M9 7V4h6v3" />
     </>
   ),
+  mic: (
+    <>
+      <rect x="9" y="2" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8" />
+    </>
+  ),
 };

@@ -1,0 +1,254 @@
+════════════════════════════════════════════════════════════════
+  FOODSENSE — GUÍA DE CONFIGURACIÓN MANUAL
+  Supabase + Firebase Auth (Third-Party Integration)
+════════════════════════════════════════════════════════════════
+
+Este archivo describe todo lo que tenés que hacer VOS manualmente
+en los dashboards y en el repo para que la integración funcione.
+No toques código — eso ya está hecho.
+
+────────────────────────────────────────────────────────────────
+PASO 1 — CREAR EL PROYECTO EN SUPABASE
+────────────────────────────────────────────────────────────────
+
+1. Entrá a https://supabase.com y logueate (o creá una cuenta).
+
+2. Hacé click en "New project".
+
+3. Completá los campos:
+   - Organization: la que corresponda al equipo
+   - Name: FoodSense (o el nombre que quieran)
+   - Database Password: generá una contraseña fuerte y GUARDALA
+     (la vas a necesitar si alguna vez querés conectarte con psql)
+   - Region: elegí South America (São Paulo) para menor latencia
+
+4. Esperá ~2 minutos a que el proyecto termine de crearse.
+
+
+────────────────────────────────────────────────────────────────
+PASO 2 — EJECUTAR LA MIGRACIÓN SQL
+────────────────────────────────────────────────────────────────
+
+Esto crea las tablas, índices, trigger y políticas RLS.
+
+1. En el dashboard de tu proyecto, ir a:
+   SQL Editor (icono de terminal en el menú izquierdo)
+
+2. Hacer click en "New query".
+
+3. Copiar y pegar el contenido completo del archivo:
+   supabase/migrations/20260628200434_initial_schema.sql
+
+4. Hacer click en "Run" (o Ctrl+Enter).
+
+5. Verificar que no hay errores en el panel de resultados.
+   Deberías ver "Success. No rows returned" para cada statement.
+
+6. Para confirmar que las tablas existen, correr:
+   SELECT table_name FROM information_schema.tables
+   WHERE table_schema = 'public';
+
+   Deberías ver: products, product_events
+
+
+────────────────────────────────────────────────────────────────
+PASO 3 — CONFIGURAR FIREBASE COMO AUTH PROVIDER EN SUPABASE
+────────────────────────────────────────────────────────────────
+
+Esto le dice a Supabase que confíe en los JWTs emitidos por
+tu proyecto de Firebase.
+
+1. En el dashboard de Supabase, ir a:
+   Authentication → Sign In Methods (o Third-Party Auth)
+   URL directa: supabase.com/dashboard/project/[TU-REF]/auth/third-party
+
+2. Buscar la sección "Third-party Auth" y hacer click en
+   "Add provider" o "Add new integration".
+
+3. Seleccionar "Firebase".
+
+4. Ingresar el Project ID de Firebase:
+   foodsense-c426d
+
+5. Guardar / Enable.
+
+⚠️  IMPORTANTE — Config alternativa via TOML (si usás Supabase CLI):
+   Agregar al archivo supabase/config.toml:
+
+   [auth.third_party.firebase]
+   enabled = true
+   project_id = "foodsense-c426d"
+
+
+────────────────────────────────────────────────────────────────
+PASO 4 — OBTENER LAS API KEYS DE SUPABASE
+────────────────────────────────────────────────────────────────
+
+1. En el dashboard de Supabase, ir a:
+   Settings → API Keys
+   (o hacer click en "Connect" en la barra superior)
+
+2. Vas a ver estas claves:
+
+   ┌─────────────────────┬────────────────────────────────────┐
+   │ Nombre              │ Formato                            │
+   ├─────────────────────┼────────────────────────────────────┤
+   │ URL del proyecto    │ https://xxxx.supabase.co           │
+   │ Publishable key     │ sb_publishable_xxxxxxxxxxxx        │
+   │ Secret key          │ sb_secret_xxxxxxxxxxxx             │
+   └─────────────────────┴────────────────────────────────────┘
+
+   SOLO necesitás URL y Publishable key.
+   La Secret key NO la necesitamos y NO debe ir en el código.
+
+3. Copiar y guardar:
+   - Project URL
+   - Publishable key (sb_publishable_...)
+
+
+────────────────────────────────────────────────────────────────
+PASO 5 — CREAR EL ARCHIVO .env.local EN EL PROYECTO
+────────────────────────────────────────────────────────────────
+
+En la raíz del proyecto web (donde está package.json):
+
+1. Crear el archivo .env.local (si no existe)
+
+2. Pegar esto y reemplazar los valores con los del Paso 4:
+
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+
+3. Verificar que .env.local está en el .gitignore:
+   (ya debería estar, pero confirmalo antes de hacer commit)
+
+
+────────────────────────────────────────────────────────────────
+PASO 6 — VERIFICAR QUE LAS POLÍTICAS RLS ESTÁN ACTIVAS
+────────────────────────────────────────────────────────────────
+
+1. En el dashboard de Supabase, ir a:
+   Table Editor → products → (icono engranaje) → "RLS"
+   O directamente: Authentication → Policies
+
+2. Deberías ver estas políticas en la tabla products:
+   - products_firebase_issuer  (restrictive)
+   - products_select
+   - products_insert
+   - products_update
+   - products_delete
+
+3. En la tabla product_events:
+   - events_firebase_issuer  (restrictive)
+   - events_select
+   - events_insert
+
+Si no aparecen, volver a ejecutar el SQL del Paso 2.
+
+
+────────────────────────────────────────────────────────────────
+PASO 7 — VERIFICAR QUE FIREBASE AUTH SIGUE FUNCIONANDO
+────────────────────────────────────────────────────────────────
+
+No hay cambios en Firebase. Solo verificar que el proyecto
+sigue activo:
+
+1. Ir a https://console.firebase.google.com
+2. Seleccionar el proyecto foodsense-c426d
+3. Authentication → Sign-in method
+4. Confirmar que Email/Password y Google están habilitados
+
+No necesitás tocar nada en Firebase.
+
+
+────────────────────────────────────────────────────────────────
+PASO 8 — PROBAR LA INTEGRACIÓN
+────────────────────────────────────────────────────────────────
+
+1. Correr el proyecto:
+   npm run dev
+
+2. Loguearse con una cuenta existente.
+
+3. Agregar un producto desde /agregar.
+
+4. En el SQL Editor de Supabase, correr:
+   SELECT * FROM products;
+
+   Deberías ver el producto recién agregado con el user_id
+   correspondiente al UID de Firebase del usuario.
+
+5. Cerrar sesión y confirmar que la despensa queda vacía.
+
+6. Volver a loguear → los productos deben aparecer de nuevo.
+
+
+────────────────────────────────────────────────────────────────
+PASO 9 — OPCIONAL: AGREGAR role: 'authenticated' EN FIREBASE
+────────────────────────────────────────────────────────────────
+
+SIN este paso la app funciona igual. Las políticas RLS ya
+manejan el caso donde Firebase asigna el rol 'anon'.
+
+SI en el futuro quieren usar Supabase Auth también, o quieren
+que los usuarios Firebase tengan el rol 'authenticated' en
+Postgres, hay que agregar una Firebase Blocking Function:
+
+1. Tener Firebase CLI instalado:
+   npm install -g firebase-tools
+   firebase login
+
+2. Inicializar Functions en el proyecto Firebase:
+   firebase init functions
+   (elegir TypeScript, con ESLint, instalar dependencias)
+
+3. En functions/src/index.ts, agregar:
+
+   import { beforeUserCreated } from 'firebase-functions/v2/identity';
+
+   export const beforecreated = beforeUserCreated((event) => {
+     return {
+       customClaims: { role: 'authenticated' }
+     };
+   });
+
+4. Deploy:
+   firebase deploy --only functions
+
+5. Para usuarios ya existentes, correr en Firebase Admin Console
+   o con el SDK un script que actualice el custom claim.
+
+⚠️  Requiere Firebase Blaze plan (pago). No es necesario para
+   que FoodSense funcione con la implementación actual.
+
+
+────────────────────────────────────────────────────────────────
+RESUMEN DE VARIABLES DE ENTORNO
+────────────────────────────────────────────────────────────────
+
+Archivo: .env.local (NO commitear)
+
+  NEXT_PUBLIC_SUPABASE_URL           ← de Supabase Settings > API
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ← de Supabase Settings > API
+
+Variables que YA NO se necesitan (borrarlas si las tenían):
+  SUPABASE_SERVICE_ROLE_KEY          ← eliminada
+  FIREBASE_ADMIN_PROJECT_ID          ← eliminada
+  FIREBASE_ADMIN_CLIENT_EMAIL        ← eliminada
+  FIREBASE_ADMIN_PRIVATE_KEY         ← eliminada
+
+
+────────────────────────────────────────────────────────────────
+RESUMEN DE PASOS OBLIGATORIOS
+────────────────────────────────────────────────────────────────
+
+  [1] Crear proyecto en Supabase
+  [2] Ejecutar el SQL de migración
+  [3] Activar Firebase como Third-Party Auth en Supabase
+  [4] Copiar URL y Publishable Key
+  [5] Crear .env.local con esas dos variables
+  [6] Verificar políticas RLS (opcional, para confirmar)
+  [7] Verificar Firebase (solo confirmar que sigue activo)
+  [8] Probar: agregar producto y verificar en Supabase SQL Editor
+
+════════════════════════════════════════════════════════════════
